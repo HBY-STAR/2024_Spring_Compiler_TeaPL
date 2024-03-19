@@ -5,7 +5,7 @@
 #include "y.tab.hpp"
 
 // set YACCDEBUG 1 to turn on yydebug
-#define YACCDEBUG 0
+#define YACCDEBUG 1
 
 using namespace std;
 
@@ -21,7 +21,7 @@ aA_program aroot;
 int main(int argc, char * argv[]) {
 
     #if YACCDEBUG
-        yydebug = 1;
+        yydebug = 0;
     #endif
 
     line = 1;
