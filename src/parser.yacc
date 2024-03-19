@@ -326,15 +326,12 @@ callStmt : fnCall SEMICOLON { $$ = A_CallStmt($1->pos, $1); }
         ;
 
 //checked
-ifStmt : IF LEFT_PAREN boolExpr RIGHT_PAREN codeBlockStmtList { $$ = A_IfStmt($3->pos, $3, $5, NULL); }
-       | IF LEFT_PAREN boolExpr RIGHT_PAREN LEFT_BRACE codeBlockStmtList RIGHT_BRACE { $$ = A_IfStmt($3->pos, $3, $6, NULL); }
-       | IF LEFT_PAREN boolExpr RIGHT_PAREN codeBlockStmtList ELSE codeBlockStmtList { $$ = A_IfStmt($3->pos, $3, $5, $7); }
+ifStmt : IF LEFT_PAREN boolExpr RIGHT_PAREN LEFT_BRACE codeBlockStmtList RIGHT_BRACE { $$ = A_IfStmt($3->pos, $3, $6, NULL); }
        | IF LEFT_PAREN boolExpr RIGHT_PAREN LEFT_BRACE codeBlockStmtList RIGHT_BRACE ELSE LEFT_BRACE codeBlockStmtList RIGHT_BRACE { $$ = A_IfStmt($3->pos, $3, $6, $10); }
        ;
 
 //checked
-whileStmt : WHILE LEFT_PAREN boolExpr RIGHT_PAREN codeBlockStmtList { $$ = A_WhileStmt($3->pos, $3, $5); }
-        | WHILE LEFT_PAREN boolExpr RIGHT_PAREN LEFT_BRACE codeBlockStmtList RIGHT_BRACE { $$ = A_WhileStmt($3->pos, $3, $6); }
+whileStmt : WHILE LEFT_PAREN boolExpr RIGHT_PAREN LEFT_BRACE codeBlockStmtList RIGHT_BRACE { $$ = A_WhileStmt($3->pos, $3, $6); }
           ;
 
 
