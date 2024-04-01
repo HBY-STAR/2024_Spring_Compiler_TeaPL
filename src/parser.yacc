@@ -16,6 +16,7 @@ extern int  yywrap();
 %union
 {
     //Terminal
+    A_pos pos_;
     A_tokenId tokenId_;
     A_tokenNum tokenNum_;
 
@@ -66,44 +67,45 @@ extern int  yywrap();
 %token <tokenId_> ID 
 %token <tokenNum_> NUM
 
-%token ARROW
 %token <nativeType_> INT
-%token LET
-%token STRUCT
-%token FN
-%token RET
-%token CONTINUE
-%token BREAK
-%token IF
-%token ELSE
-%token WHILE 
-%token COMMENT
 
-%token ADD
-%token SUB
-%token MUL
-%token DIV
-%token AND
-%token OR
-%token NOT
-%token LT
-%token LE
-%token GT
-%token GE
-%token EQ
-%token NE
+%token <pos_> ARROW
+%token <pos_> LET
+%token <pos_> STRUCT
+%token <pos_> FN
+%token <pos_> RET
+%token <pos_> CONTINUE
+%token <pos_> BREAK
+%token <pos_> IF
+%token <pos_> ELSE
+%token <pos_> WHILE 
+%token <pos_> COMMENT
 
-%token SEMICOLON
-%token LEFT_PAREN
-%token RIGHT_PAREN
-%token LEFT_BRACKET
-%token RIGHT_BRACKET
-%token DOT
-%token EQUALS
-%token COMMA
-%token COLON
-%token LEFT_BRACE
-%token RIGHT_BRACE
+%token <pos_> ADD
+%token <pos_> SUB
+%token <pos_> MUL
+%token <pos_> DIV
+%token <pos_> AND
+%token <pos_> OR
+%token <pos_> NOT
+%token <pos_> LT
+%token <pos_> LE
+%token <pos_> GT
+%token <pos_> GE
+%token <pos_> EQ
+%token <pos_> NE
+
+%token <pos_> SEMICOLON
+%token <pos_> LEFT_PAREN
+%token <pos_> RIGHT_PAREN
+%token <pos_> LEFT_BRACKET
+%token <pos_> RIGHT_BRACKET
+%token <pos_> DOT
+%token <pos_> EQUALS
+%token <pos_> COMMA
+%token <pos_> COLON
+%token <pos_> LEFT_BRACE
+%token <pos_> RIGHT_BRACE
 
 %left OR
 %left AND
@@ -181,7 +183,6 @@ programElement: varDeclStmt { $$ = A_ProgramVarDeclStmt($1->pos, $1); }
               ;
 
 
-//checked
 arithExpr: arithExpr ADD arithExpr { $$ = A_ArithBiOp_Expr($1->pos, A_ArithBiOpExpr($1->pos, A_add, $1, $3)); }
          | arithExpr SUB arithExpr { $$ = A_ArithBiOp_Expr($1->pos, A_ArithBiOpExpr($1->pos, A_sub, $1, $3)); }
          | arithExpr MUL arithExpr { $$ = A_ArithBiOp_Expr($1->pos, A_ArithBiOpExpr($1->pos, A_mul, $1, $3)); }
@@ -189,7 +190,6 @@ arithExpr: arithExpr ADD arithExpr { $$ = A_ArithBiOp_Expr($1->pos, A_ArithBiOpE
          | exprUnit { $$ = A_ExprUnit($1->pos, $1); }
          ;
 
-//checked
 exprUnit:  NUM { $$ = A_NumExprUnit($1->pos, $1->num); }
         | ID { $$ = A_IdExprUnit($1->pos, $1->id); }
         | LEFT_PAREN arithExpr RIGHT_PAREN { $$ = A_ArithExprUnit($2->pos, $2); }
@@ -200,13 +200,11 @@ exprUnit:  NUM { $$ = A_NumExprUnit($1->pos, $1->num); }
         | SUB exprUnit { $$ = A_ArithUExprUnit($2->pos, A_ArithUExpr($2->pos, A_neg, $2)); }
         ;
 
-//checked
 boolExpr: boolExpr OR boolExpr { $$ = A_BoolBiOp_Expr($1->pos, A_BoolBiOpExpr($1->pos, A_or, $1, $3)); }
         | boolExpr AND boolExpr { $$ = A_BoolBiOp_Expr($1->pos, A_BoolBiOpExpr($1->pos, A_and, $1, $3)); }
         | boolUnit { $$ = A_BoolExpr($1->pos, $1); }
         ;
 
-//checked
 boolUnit: LEFT_PAREN boolExpr RIGHT_PAREN { $$ = A_BoolExprUnit($2->pos, $2); }
         | exprUnit LT exprUnit { $$ = A_ComExprUnit($1->pos, A_ComExpr($1->pos, A_lt, $1, $3)); }
         | exprUnit LE exprUnit { $$ = A_ComExprUnit($1->pos, A_ComExpr($1->pos, A_le, $1, $3)); }
@@ -217,11 +215,9 @@ boolUnit: LEFT_PAREN boolExpr RIGHT_PAREN { $$ = A_BoolExprUnit($2->pos, $2); }
         | NOT boolUnit { $$ = A_BoolUOpExprUnit($2->pos, A_BoolUOpExpr($2->pos, A_not, $2)); }
         ;
 
-//checked
 assignStmt: leftVal EQUALS rightVal SEMICOLON { $$ = A_AssignStmt($1->pos, $1, $3); }
            ;
 
-//checked
 leftVal: ID { $$ = A_IdExprLVal($1->pos, $1->id); }
        | leftVal LEFT_BRACKET ID RIGHT_BRACKET { $$ = A_ArrExprLVal($1->pos, A_ArrayExpr($1->pos, $1, A_IdIndexExpr($1->pos, $3->id))); }
        | leftVal LEFT_BRACKET NUM RIGHT_BRACKET { $$ = A_ArrExprLVal($1->pos, A_ArrayExpr($1->pos, $1, A_NumIndexExpr($1->pos, $3->num))); }
@@ -229,25 +225,20 @@ leftVal: ID { $$ = A_IdExprLVal($1->pos, $1->id); }
        ;
 
 
-//checked
 rightVal: arithExpr { $$ = A_ArithExprRVal($1->pos, $1); }
          | boolExpr { $$ = A_BoolExprRVal($1->pos, $1); }
          ;
 
-//checked
 fnCall : ID LEFT_PAREN rightValList RIGHT_PAREN { $$ = A_FnCall($1->pos, $1->id, $3); }
 
-//checked
 rightValList : { $$ = NULL; } 
              | rightVal { $$ = A_RightValList($1, NULL); }
              | rightVal COMMA rightValList { $$ = A_RightValList($1, $3); }
 
-//checked
 varDeclStmt: LET varDecl SEMICOLON { $$ = A_VarDeclStmt($2->pos, $2); }
            | LET varDef SEMICOLON { $$ = A_VarDefStmt($2->pos, $2); }
            ;
 
-//checked
 varDecl: ID COLON type { $$ = A_VarDecl_Scalar($1->pos, A_VarDeclScalar($1->pos, $1->id, $3)); }
         | ID { $$ = A_VarDecl_Scalar($1->pos, A_VarDeclScalar($1->pos, $1->id, NULL)); }
         | ID LEFT_BRACKET NUM RIGHT_BRACKET COLON type { $$ = A_VarDecl_Array($1->pos, A_VarDeclArray($1->pos, $1->id, $3->num, $6)); }
@@ -255,7 +246,6 @@ varDecl: ID COLON type { $$ = A_VarDecl_Scalar($1->pos, A_VarDeclScalar($1->pos,
         ;
 
 
-//checked
 varDef : ID COLON type EQUALS rightVal { $$ = A_VarDef_Scalar($1->pos, A_VarDefScalar($1->pos, $1->id, $3, $5)); }
        | ID EQUALS rightVal { $$ = A_VarDef_Scalar($1->pos, A_VarDefScalar($1->pos, $1->id, NULL, $3)); }
        | ID LEFT_BRACKET NUM RIGHT_BRACKET COLON type EQUALS LEFT_BRACE rightValList RIGHT_BRACE { $$ = A_VarDef_Array($1->pos, A_VarDefArray($1->pos, $1->id, $3->num, $6, $9)); }
@@ -263,45 +253,36 @@ varDef : ID COLON type EQUALS rightVal { $$ = A_VarDef_Scalar($1->pos, A_VarDefS
        ;
 
 
-//checked
 type: INT { $$ = A_NativeType(A_Pos(0,0), $1); }
      | ID { $$ = A_StructType(A_Pos(0,0), $1->id); }
      ;
 
-//checked
 structDef : STRUCT ID LEFT_BRACE varDeclList RIGHT_BRACE { $$ = A_StructDef($2->pos, $2->id, $4); }
           ;
 
-//checked
 varDeclList : { $$ = NULL; }
             | varDecl { $$ = A_VarDeclList($1, NULL); }
             | varDecl COMMA varDeclList { $$ = A_VarDeclList($1, $3); }
             ;
 
-//checked
 fnDeclStmt: fnDecl SEMICOLON { $$ = A_FnDeclStmt($1->pos, $1); }
           ;
 
 
-//checked
 fnDecl: FN ID LEFT_PAREN paramDecl RIGHT_PAREN { $$ = A_FnDecl($2->pos, $2->id, $4, NULL); }
        | FN ID LEFT_PAREN paramDecl RIGHT_PAREN ARROW type { $$ = A_FnDecl($2->pos, $2->id, $4, $7); }
        ;
 
-//checked
 paramDecl : varDeclList { $$ = A_ParamDecl($1); }
         ;
 
-//checked
 fnDef: fnDecl LEFT_BRACE codeBlockStmtList RIGHT_BRACE { $$ = A_FnDef($1->pos, $1, $3); }
      ;
 
-//checked
 codeBlockStmtList : codeBlockStmt { $$ = A_CodeBlockStmtList($1, NULL); }
                   | codeBlockStmt codeBlockStmtList { $$ = A_CodeBlockStmtList($1, $2); }
                   ;
 
-//checked
 codeBlockStmt : varDeclStmt { $$ = A_BlockVarDeclStmt($1->pos, $1); }
               | assignStmt { $$ = A_BlockAssignStmt($1->pos, $1); }
               | callStmt { $$ = A_BlockCallStmt($1->pos, $1); }
@@ -313,7 +294,6 @@ codeBlockStmt : varDeclStmt { $$ = A_BlockVarDeclStmt($1->pos, $1); }
               | SEMICOLON { $$ = A_BlockNullStmt(A_Pos(0,0)); }
               ;
 
-//checked
 returnStmt : RET rightVal SEMICOLON { $$ = A_ReturnStmt($2->pos, $2); }
            | RET SEMICOLON { $$ = A_ReturnStmt(A_Pos(0,0), NULL); }
            ;
@@ -321,16 +301,13 @@ returnStmt : RET rightVal SEMICOLON { $$ = A_ReturnStmt($2->pos, $2); }
 
 
 
-//checked
 callStmt : fnCall SEMICOLON { $$ = A_CallStmt($1->pos, $1); }
         ;
 
-//checked
 ifStmt : IF LEFT_PAREN boolExpr RIGHT_PAREN LEFT_BRACE codeBlockStmtList RIGHT_BRACE { $$ = A_IfStmt($3->pos, $3, $6, NULL); }
        | IF LEFT_PAREN boolExpr RIGHT_PAREN LEFT_BRACE codeBlockStmtList RIGHT_BRACE ELSE LEFT_BRACE codeBlockStmtList RIGHT_BRACE { $$ = A_IfStmt($3->pos, $3, $6, $10); }
        ;
 
-//checked
 whileStmt : WHILE LEFT_PAREN boolExpr RIGHT_PAREN LEFT_BRACE codeBlockStmtList RIGHT_BRACE { $$ = A_WhileStmt($3->pos, $3, $6); }
           ;
 
