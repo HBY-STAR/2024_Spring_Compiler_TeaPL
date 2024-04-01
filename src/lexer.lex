@@ -35,8 +35,8 @@ int calc(char *s, int len);
 "else"      { yylval.pos_ = A_Pos(line,col); col+=4; return ELSE; }
 "while"     { yylval.pos_ = A_Pos(line,col); col+=5; return WHILE; }
 
-"//"(.)*\n  { yylval.pos_ = A_Pos(line,col); return COMMENT;  }
-"/*"([^*]|\n|\*+([^*/]|\n))*\*+"/"   { yylval.pos_ = A_Pos(line,col); return COMMENT; }
+"//"(.)*\n  { }
+"/*"([^*]|\n|\*+([^*/]|\n))*\*+"/"   { }
 
 
 [a-z_A-Z][a-z_A-Z0-9]* {
