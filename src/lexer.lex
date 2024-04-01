@@ -35,8 +35,34 @@ int calc(char *s, int len);
 "else"      { yylval.pos_ = A_Pos(line,col); col+=4; return ELSE; }
 "while"     { yylval.pos_ = A_Pos(line,col); col+=5; return WHILE; }
 
-"//"(.)*\n  { }
-"/*"([^*]|\n|\*+([^*/]|\n))*\*+"/"   { }
+"//"(.)*\n  { 
+    for(int i = 0; yytext[i] != '\0'; i++) 
+    { 
+        if(yytext[i] == '\n') 
+        { 
+            line++; 
+            col = 0; 
+        } 
+        else 
+        { 
+            col++; 
+        } 
+    } 
+}
+
+"/*"([^*]|\n|\*+([^*/]|\n))*\*+"/"   { 
+    for(int i = 0; yytext[i] != '\0'; i++) 
+    { 
+        if(yytext[i] == '\n') 
+        { 
+            line++; 
+            col = 0; 
+        } else 
+        { 
+            col++;
+        } 
+    } 
+}
 
 
 [a-z_A-Z][a-z_A-Z0-9]* {
