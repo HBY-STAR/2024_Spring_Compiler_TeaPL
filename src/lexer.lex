@@ -10,30 +10,30 @@ int calc(char *s, int len);
 
 %%
 
-";" { yylval.pos_ = A_Pos(line,col); col+=1; return SEMICOLON; }
-"(" { yylval.pos_ = A_Pos(line,col); col+=1; return LEFT_PAREN; }
-")" { yylval.pos_ = A_Pos(line,col); col+=1; return RIGHT_PAREN; }
-"[" { yylval.pos_ = A_Pos(line,col); col+=1; return LEFT_BRACKET; }
-"]" { yylval.pos_ = A_Pos(line,col); col+=1; return RIGHT_BRACKET; }
-"." { yylval.pos_ = A_Pos(line,col); col+=1; return DOT; }
-"=" { yylval.pos_ = A_Pos(line,col); col+=1; return EQUALS; }
-"," { yylval.pos_ = A_Pos(line,col); col+=1; return COMMA; }
-":" { yylval.pos_ = A_Pos(line,col); col+=1; return COLON; }
-"{" { yylval.pos_ = A_Pos(line,col); col+=1; return LEFT_BRACE; }
-"}" { yylval.pos_ = A_Pos(line,col); col+=1; return RIGHT_BRACE; }
+";" { col+=1; yylval.pos_ = A_Pos(line,col); return SEMICOLON; }
+"(" { col+=1; yylval.pos_ = A_Pos(line,col); return LEFT_PAREN; }
+")" { col+=1; yylval.pos_ = A_Pos(line,col); return RIGHT_PAREN; }
+"[" { col+=1; yylval.pos_ = A_Pos(line,col); return LEFT_BRACKET; }
+"]" { col+=1; yylval.pos_ = A_Pos(line,col); return RIGHT_BRACKET; }
+"." { col+=1; yylval.pos_ = A_Pos(line,col); return DOT; }
+"=" { col+=1; yylval.pos_ = A_Pos(line,col); return EQUALS; }
+"," { col+=1; yylval.pos_ = A_Pos(line,col); return COMMA; }
+":" { col+=1; yylval.pos_ = A_Pos(line,col); return COLON; }
+"{" { col+=1; yylval.pos_ = A_Pos(line,col); return LEFT_BRACE; }
+"}" { col+=1; yylval.pos_ = A_Pos(line,col); return RIGHT_BRACE; }
 
 
-"->"        { yylval.pos_ = A_Pos(line,col); col+=2; return ARROW; }
-"int"       { yylval.nativeType_ = A_intTypeKind; col+=3; return INT; }
-"let"       { yylval.pos_ = A_Pos(line,col); col+=3; return LET; }
-"struct"    { yylval.pos_ = A_Pos(line,col); col+=6; return STRUCT; }
-"fn"        { yylval.pos_ = A_Pos(line,col); col+=2; return FN; }
-"ret"       { yylval.pos_ = A_Pos(line,col); col+=3; return RET; }
-"continue"  { yylval.pos_ = A_Pos(line,col); col+=8; return CONTINUE; }
-"break"     { yylval.pos_ = A_Pos(line,col); col+=5; return BREAK; }
-"if"        { yylval.pos_ = A_Pos(line,col); col+=2; return IF; }
-"else"      { yylval.pos_ = A_Pos(line,col); col+=4; return ELSE; }
-"while"     { yylval.pos_ = A_Pos(line,col); col+=5; return WHILE; }
+"->"        { col+=2; yylval.pos_ = A_Pos(line,col); return ARROW; }
+"int"       { col+=3; yylval.nativeType_ = A_intTypeKind; return INT; }
+"let"       { col+=3; yylval.pos_ = A_Pos(line,col); return LET; }
+"struct"    { col+=6; yylval.pos_ = A_Pos(line,col); return STRUCT; }
+"fn"        { col+=2; yylval.pos_ = A_Pos(line,col); return FN; }
+"ret"       { col+=3; yylval.pos_ = A_Pos(line,col); return RET; }
+"continue"  { col+=8; yylval.pos_ = A_Pos(line,col); return CONTINUE; }
+"break"     { col+=5; yylval.pos_ = A_Pos(line,col); return BREAK; }
+"if"        { col+=2; yylval.pos_ = A_Pos(line,col); return IF; }
+"else"      { col+=4; yylval.pos_ = A_Pos(line,col); return ELSE; }
+"while"     { col+=5; yylval.pos_ = A_Pos(line,col); return WHILE; }
 
 "//"(.)*\n  { 
     for(int i = 0; yytext[i] != '\0'; i++) 
@@ -66,99 +66,99 @@ int calc(char *s, int len);
 
 
 [a-z_A-Z][a-z_A-Z0-9]* {
+    col+=yyleng;
     char *temp = strdup(yytext);
     yylval.tokenId_ = A_TokenId(A_Pos(line,col), temp); 
-    col+=yyleng;
     return ID;
 }
 
 
 [1-9][0-9]* {
-    yylval.tokenNum_ = A_TokenNum(A_Pos(line, col), calc(yytext, yyleng));
     col+=yyleng;
+    yylval.tokenNum_ = A_TokenNum(A_Pos(line, col), calc(yytext, yyleng));
     return NUM;
 }
 0 {
-    yylval.tokenNum_ = A_TokenNum(A_Pos(line, col), 0);
     ++col;
+    yylval.tokenNum_ = A_TokenNum(A_Pos(line, col), 0);
     return NUM;
 }
 
 "+" {
-    yylval.pos_ = A_Pos(line,col);
     col+=1;
+    yylval.pos_ = A_Pos(line,col);
     return ADD;
 }
 
 "-" {
-    yylval.pos_ = A_Pos(line,col);
     col+=1;
+    yylval.pos_ = A_Pos(line,col);
     return SUB;
 }
 
 "*" {
-    yylval.pos_ = A_Pos(line,col);
     col+=1;
+    yylval.pos_ = A_Pos(line,col);
     return MUL;
 }
 
 "/" {
-    yylval.pos_ = A_Pos(line,col);
     col+=1;
+    yylval.pos_ = A_Pos(line,col);
     return DIV;
 }
 
 "&&" {
-    yylval.pos_ = A_Pos(line,col);
     col+=2;
+    yylval.pos_ = A_Pos(line,col);
     return AND;
 }
 
 "||" {
-    yylval.pos_ = A_Pos(line,col);
     col+=2;
+    yylval.pos_ = A_Pos(line,col);
     return OR;
 }
 
 "!" {
-    yylval.pos_ = A_Pos(line,col);
     col+=1;
+    yylval.pos_ = A_Pos(line,col);
     return NOT;
 }
 
 "<" {
-    yylval.pos_ = A_Pos(line,col);
     col+=1;
+    yylval.pos_ = A_Pos(line,col);
     return LT;
 }
 
 "<=" {
-    yylval.pos_ = A_Pos(line,col);
     col+=2;
+    yylval.pos_ = A_Pos(line,col);
     return LE;
 }
 
 ">" {
-    yylval.pos_ = A_Pos(line,col);
     col+=1;
+    yylval.pos_ = A_Pos(line,col);
     return GT;
 }
 
 ">=" {
-    yylval.pos_ = A_Pos(line,col);
     col+=2;
+    yylval.pos_ = A_Pos(line,col);
     return GE;
 }
 
 "==" {
-    yylval.pos_ = A_Pos(line,col);
     col+=2;
+    yylval.pos_ = A_Pos(line,col);
     return EQ;
 }
 
 "!=" {
-    yylval.pos_ = A_Pos(line,col);
     col+=2;
+    yylval.pos_ = A_Pos(line,col);
     return NE;
 }
 

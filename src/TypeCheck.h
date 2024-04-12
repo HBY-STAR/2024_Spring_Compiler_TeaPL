@@ -34,6 +34,7 @@ void check_FuncCall(std::ostream& out, aA_fnCall fc);
 void check_WhileStmt(std::ostream& out, aA_whileStmt ws);
 void check_CallStmt(std::ostream& out, aA_callStmt cs);
 void check_ReturnStmt(std::ostream& out, aA_returnStmt rs);
+tc_type FindId(string* id);
 
 struct tc_type_{
     aA_type type;
