@@ -151,11 +151,12 @@ void check_Prog(std::ostream &out, aA_program p)
         }
     }
 
-    out << "Typecheck passed!" << std::endl;
+    out << "\nTypecheck passed!" << std::endl;
+    print_token_maps();
     return;
 }
 
-// 检查全局变量声明和定义
+// 检查变量声明和定义
 void check_VarDecl(std::ostream &out, aA_varDeclStmt vd)
 {
     if (!vd)
@@ -172,10 +173,20 @@ void check_VarDecl(std::ostream &out, aA_varDeclStmt vd)
 
             // 检查是否重复声明
             if (g_token2Type.find(name) != g_token2Type.end())
-                error_print(out, vdecl->pos, "This id is already defined!");
+                error_print(out, vdecl->pos, "This id is already defined in global!");
+            for (auto it = local_token2Type.begin(); it != local_token2Type.end(); it++)
+            {
+                if ((*it)->find(name) != (*it)->end())
+                    error_print(out, vdecl->pos, "This id is already defined in this scope!");
+            }
+            if (funcparam_token2Type.find(name) != funcparam_token2Type.end())
+                error_print(out, vdecl->pos, "This id is already defined in function params!");
 
-            // 添加到全局变量表
-            g_token2Type[name] = tc_Type(vdecl);
+            // 添加到全局或局部变量表
+            if (local_token2Type.size() == 0)
+                g_token2Type[name] = tc_Type(vdecl);
+            else
+                local_token2Type.back()->insert({name, tc_Type(vdecl)});
         }
         else if (vdecl->kind == A_varDeclType::A_varDeclArrayKind)
         {
@@ -184,11 +195,20 @@ void check_VarDecl(std::ostream &out, aA_varDeclStmt vd)
 
             // 检查是否重复声明
             if (g_token2Type.find(name) != g_token2Type.end())
-                error_print(out, vdecl->pos, "This id is already defined!");
+                error_print(out, vdecl->pos, "This id is already defined in global!");
+            for (auto it = local_token2Type.begin(); it != local_token2Type.end(); it++)
+            {
+                if ((*it)->find(name) != (*it)->end())
+                    error_print(out, vdecl->pos, "This id is already defined in this scope!");
+            }
+            if (funcparam_token2Type.find(name) != funcparam_token2Type.end())
+                error_print(out, vdecl->pos, "This id is already defined in function params!");
 
-            // 添加到全局变量表
-            g_token2Type[name] = tc_Type(vdecl);
-
+            // 添加到全局或局部变量表
+            if (local_token2Type.size() == 0)
+                g_token2Type[name] = tc_Type(vdecl);
+            else
+                local_token2Type.back()->insert({name, tc_Type(vdecl)});
         }
     }
     else if (vd->kind == A_varDeclStmtType::A_varDefKind)
@@ -202,10 +222,57 @@ void check_VarDecl(std::ostream &out, aA_varDeclStmt vd)
 
             // 检查是否重复声明
             if (g_token2Type.find(name) != g_token2Type.end())
-                error_print(out, vdef->pos, "This id is already defined!");
+                error_print(out, vdef->pos, "This id is already defined in global!");
+            for (auto it = local_token2Type.begin(); it != local_token2Type.end(); it++)
+            {
+                if ((*it)->find(name) != (*it)->end())
+                    error_print(out, vdef->pos, "This id is already defined in this scope!");
+            }
+            if (funcparam_token2Type.find(name) != funcparam_token2Type.end())
+                error_print(out, vdef->pos, "This id is already defined in function params!");
 
-            // 添加到全局变量表
-            g_token2Type[name] = tc_Type(vdef->u.defScalar->type, 0);
+            // 检查类型是否匹配
+            // bool表达式
+            if (vdef->u.defScalar->val->kind == A_boolExprValKind)
+            {
+                error_print(out, vdef->pos, "BoolExprVal is not allowed in scalar variable definition!");
+            }
+            // 算术表达式
+            else
+            {
+                tc_type temp = check_ArithExpr(out, vdef->u.defScalar->val->u.arithExpr);
+
+                // struct类型
+                if (temp->type && (temp->type->type == A_dataType::A_structTypeKind))
+                {
+                    // 赋值推断类型
+                    if (vdef->u.defScalar->type == nullptr)
+                    {
+                        vdef->u.defScalar->type = temp->type;
+                    }
+                    // 类型不匹配
+                    else if (temp->type->u.structType != vdef->u.defScalar->type->u.structType)
+                        error_print(out, vdef->pos, "Struct type mismatch!");
+                }
+                // 原生类型
+                else
+                {
+                    // 赋值推断类型
+                    if (vdef->u.defScalar->type == nullptr)
+                    {
+                        vdef->u.defScalar->type = temp->type;
+                    }
+                    // 类型不匹配
+                    else if (temp->type && (temp->type->u.nativeType != vdef->u.defScalar->type->u.nativeType))
+                        error_print(out, vdef->pos, "Native type mismatch!");
+                }
+            }
+
+            // 添加到全局或局部变量表
+            if (local_token2Type.size() == 0)
+                g_token2Type[name] = tc_Type(vdef->u.defScalar->type, 0);
+            else
+                local_token2Type.back()->insert({name, tc_Type(vdef->u.defScalar->type, 0)});
         }
         else if (vdef->kind == A_varDefType::A_varDefArrayKind)
         {
@@ -214,10 +281,64 @@ void check_VarDecl(std::ostream &out, aA_varDeclStmt vd)
 
             // 检查是否重复声明
             if (g_token2Type.find(name) != g_token2Type.end())
-                error_print(out, vdef->pos, "This id is already defined!");
-            
-            // 添加到全局变量表
-            g_token2Type[name] = tc_Type(vdef->u.defArray->type, 1);
+                error_print(out, vdef->pos, "This id is already defined in global!");
+            for (auto it = local_token2Type.begin(); it != local_token2Type.end(); it++)
+            {
+                if ((*it)->find(name) != (*it)->end())
+                    error_print(out, vdef->pos, "This id is already defined in this scope!");
+            }
+            if (funcparam_token2Type.find(name) != funcparam_token2Type.end())
+                error_print(out, vdef->pos, "This id is already defined in function params!");
+
+            // 检查类型是否匹配
+            // 首先检查数组长度是否匹配
+            if (vdef->u.defArray->vals.size() != vdef->u.defArray->len)
+                error_print(out, vdef->pos, "Array length mismatch!");
+            // 然后检查数组元素类型是否匹配
+            for (auto it = vdef->u.defArray->vals.begin(); it != vdef->u.defArray->vals.end(); it++)
+            {
+                // bool表达式
+                if ((*it)->kind == A_boolExprValKind)
+                {
+                    error_print(out, vdef->pos, "BoolExprVal is not allowed in array variable definition!");
+                }
+                // 算术表达式
+                else
+                {
+                    tc_type temp = check_ArithExpr(out, (*it)->u.arithExpr);
+
+                    // struct类型
+                    if (temp->type && (temp->type->type == A_dataType::A_structTypeKind))
+                    {
+                        // 赋值推断类型
+                        if (vdef->u.defScalar->type == nullptr)
+                        {
+                            vdef->u.defScalar->type = temp->type;
+                        }
+                        // 类型不匹配
+                        else if (temp->type->u.structType != vdef->u.defScalar->type->u.structType)
+                            error_print(out, vdef->pos, "Struct type mismatch!");
+                    }
+                    // 原生类型
+                    else
+                    {
+                        // 赋值推断类型
+                        if (vdef->u.defScalar->type == nullptr)
+                        {
+                            vdef->u.defScalar->type = temp->type;
+                        }
+                        // 类型不匹配
+                        else if (temp->type && (temp->type->u.nativeType != vdef->u.defScalar->type->u.nativeType))
+                            error_print(out, vdef->pos, "Native type mismatch!");
+                    }
+                }
+            }
+
+            // 添加到全局或局部变量表
+            if (local_token2Type.size() == 0)
+                g_token2Type[name] = tc_Type(vdef->u.defArray->type, 1);
+            else
+                local_token2Type.back()->insert({name, tc_Type(vdef->u.defArray->type, 1)});
         }
     }
     return;
@@ -247,6 +368,10 @@ void check_FnDecl(std::ostream &out, aA_fnDecl fd)
     {
         // is function ret val matches
         /* fill code here */
+        if (fd)
+        {
+        }
+
         // is function params matches decl
         /* fill code here */
     }
@@ -453,6 +578,37 @@ tc_type check_ExprUnit(std::ostream &out, aA_exprUnit eu)
     case A_exprUnitType::A_idExprKind:
     {
         /* fill code here */
+        // 检查 id 是否定义
+        bool defined = false;
+        for (auto it = g_token2Type.begin(); it != g_token2Type.end(); it++)
+        {
+            if (it->first == *eu->u.id)
+            {
+                defined = true;
+                ret = it->second;
+                break;
+            }
+        }
+        for (auto it = local_token2Type.begin(); it != local_token2Type.end(); it++)
+        {
+            if ((*it)->find(*eu->u.id) != (*it)->end())
+            {
+                defined = true;
+                ret = (*it)->find(*eu->u.id)->second;
+                break;
+            }
+        }
+        for (auto it = funcparam_token2Type.begin(); it != funcparam_token2Type.end(); it++)
+        {
+            if (it->first == *eu->u.id)
+            {
+                defined = true;
+                ret = it->second;
+                break;
+            }
+        }
+        if (!defined)
+            error_print(out, eu->pos, "This id is not defined!");
     }
     break;
     case A_exprUnitType::A_numExprKind:
