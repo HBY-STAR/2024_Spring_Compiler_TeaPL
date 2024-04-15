@@ -164,16 +164,15 @@ void check_Prog(std::ostream &out, aA_program p)
         if (ele->kind == A_programFnDeclStmtKind)
         {
             check_FnDeclStmt(out, ele->u.fnDeclStmt);
+        }else if (ele->kind == A_programFnDefKind)
+        {
+            check_FnDef(out, ele->u.fnDef);
         }
     }
 
     for (auto ele : p->programElements)
     {
-        if (ele->kind == A_programFnDefKind)
-        {
-            check_FnDef(out, ele->u.fnDef);
-        }
-        else if (ele->kind == A_programNullStmtKind)
+        if (ele->kind == A_programNullStmtKind)
         {
             // do nothing
         }
