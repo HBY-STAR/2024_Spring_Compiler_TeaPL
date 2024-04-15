@@ -14,11 +14,12 @@ typedef std::unordered_map<string, tc_type> typeMap;
 
 // func name to params
 typedef std::unordered_map<string, vector<aA_varDecl>*> paramMemberMap; 
+typedef std::unordered_map<string, bool> IsFuncDefinedMap; 
 
 void check_Prog(std::ostream& out, aA_program p);
 void check_VarDecl(std::ostream& out, aA_varDeclStmt vd);
 void check_StructDef(std::ostream& out, aA_structDef sd);
-void check_FnDecl(std::ostream& out, aA_fnDecl fd);
+void check_FnDecl(std::ostream& out, aA_fnDecl fd, bool isDef);
 void check_FnDeclStmt(std::ostream& out, aA_fnDeclStmt fd);
 void check_FnDef(std::ostream& out, aA_fnDef fd);
 void check_CodeblockStmt(std::ostream& out, aA_codeBlockStmt cs);

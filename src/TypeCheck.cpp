@@ -11,12 +11,14 @@ typeMap funcparam_token2Type;
 vector<typeMap *> local_token2Type;
 
 paramMemberMap func2Param;
+IsFuncDefinedMap IsFuncDefined;
 paramMemberMap struct2Members;
 
 // private util functions
 void error_print(std::ostream &out, A_pos p, string info)
 {
-    out << "Typecheck error in line " << p->line << ", col " << p->col << ": " << info << std::endl;
+    out << "Typecheck error in line " << p->line << ", col " << p->col << ": " << info << std::endl
+        << std::endl;
     exit(0);
 }
 
@@ -76,7 +78,7 @@ void print_token_maps()
         std::cout << it->first << " : ";
         for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
         {
-            std::cout << (*it2)->u.declScalar->id << " ";
+            std::cout << *((*it2)->u.declScalar->id) << " ";
         }
         std::cout << std::endl;
     }
@@ -86,9 +88,14 @@ void print_token_maps()
         std::cout << it->first << " : ";
         for (auto it2 = it->second->begin(); it2 != it->second->end(); it2++)
         {
-            std::cout << (*it2)->u.declScalar->id << " ";
+            std::cout << *((*it2)->u.declScalar->id) << " ";
         }
         std::cout << std::endl;
+    }
+    std::cout << "IsFuncDefined" << std::endl;
+    for (auto it = IsFuncDefined.begin(); it != IsFuncDefined.end(); it++)
+    {
+        std::cout << it->first << " : " << it->second << std::endl;
     }
 }
 
@@ -158,10 +165,6 @@ void check_Prog(std::ostream &out, aA_program p)
         {
             check_FnDeclStmt(out, ele->u.fnDeclStmt);
         }
-        else if (ele->kind == A_programFnDefKind)
-        {
-            check_FnDecl(out, ele->u.fnDef->fnDecl);
-        }
     }
 
     for (auto ele : p->programElements)
@@ -176,7 +179,9 @@ void check_Prog(std::ostream &out, aA_program p)
         }
     }
 
-    out << "Typecheck passed!" << std::endl;
+    print_token_maps();
+    out << "Typecheck passed!\n"
+        << std::endl;
     return;
 }
 
@@ -215,6 +220,9 @@ void check_VarDecl(std::ostream &out, aA_varDeclStmt vd)
             tc_type temp = FindId(&name);
             if (temp)
                 error_print(out, vdecl->pos, "This id is already defined!");
+            // 检查数组索引
+            if (vdecl->u.declArray->len <= 0)
+                error_print(out, vdecl->pos, "Array length should be positive!");
 
             // 添加到全局或局部变量表
             if (local_token2Type.size() == 0)
@@ -248,7 +256,7 @@ void check_VarDecl(std::ostream &out, aA_varDeclStmt vd)
             if (temp->type && (temp->type->type == A_dataType::A_structTypeKind))
             {
                 // 值类型不匹配
-                if (temp->type->u.structType != vdef->u.defScalar->type->u.structType)
+                if (*temp->type->u.structType != *vdef->u.defScalar->type->u.structType)
                     error_print(out, vdef->pos, "Struct type mismatch!");
             }
             // 原生类型
@@ -274,6 +282,9 @@ void check_VarDecl(std::ostream &out, aA_varDeclStmt vd)
             tc_type temp = FindId(&name);
             if (temp)
                 error_print(out, vdef->pos, "This id is already defined!");
+            // 检查数组索引
+            if (vdef->u.defArray->len <= 0)
+                error_print(out, vdef->pos, "Array length should be positive!");
 
             // 检查类型是否匹配
             // 首先检查数组长度是否匹配
@@ -293,8 +304,10 @@ void check_VarDecl(std::ostream &out, aA_varDeclStmt vd)
                 if (temp->type && (temp->type->type == A_dataType::A_structTypeKind))
                 {
                     // 值类型不匹配
-                    if (temp->type->u.structType != vdef->u.defArray->type->u.structType)
+                    if (*temp->type->u.structType != *vdef->u.defArray->type->u.structType)
+                    {
                         error_print(out, vdef->pos, "Struct type mismatch!");
+                    }
                 }
                 // 原生类型
                 else
@@ -328,7 +341,7 @@ void check_StructDef(std::ostream &out, aA_structDef sd)
 }
 
 // 检查全局函数声明
-void check_FnDecl(std::ostream &out, aA_fnDecl fd)
+void check_FnDecl(std::ostream &out, aA_fnDecl fd, bool isDef)
 {
     if (!fd)
         return;
@@ -337,6 +350,10 @@ void check_FnDecl(std::ostream &out, aA_fnDecl fd)
     // if already declared, should match
     if (func2Param.find(name) != func2Param.end())
     {
+        if (IsFuncDefined.find(name) != IsFuncDefined.end() && IsFuncDefined[name])
+        {
+            error_print(out, fd->pos, "This function is already defined!");
+        }
         // is function ret val matches
         /* fill code here */
         if (!comp_aA_type(g_token2Type[name]->type, fd->type))
@@ -380,6 +397,11 @@ void check_FnDecl(std::ostream &out, aA_fnDecl fd)
         }
         func2Param[name] = &(fd->paramDecl->varDecls);
         g_token2Type[name] = tc_Type(fd->type, 2);
+        if (isDef){
+            IsFuncDefined[name] = true;
+        }
+        else
+            IsFuncDefined[name] = false;
     }
     return;
 }
@@ -388,7 +410,7 @@ void check_FnDeclStmt(std::ostream &out, aA_fnDeclStmt fd)
 {
     if (!fd)
         return;
-    check_FnDecl(out, fd->fnDecl);
+    check_FnDecl(out, fd->fnDecl, false);
     return;
 }
 
@@ -398,11 +420,10 @@ void check_FnDef(std::ostream &out, aA_fnDef fd)
     if (!fd)
         return;
     // should match if declared
-    check_FnDecl(out, fd->fnDecl);
+    check_FnDecl(out, fd->fnDecl, true);
     // add params to local tokenmap, func params override global ones
 
     funcparam_token2Type.clear();
-
 
     for (aA_varDecl vd : fd->fnDecl->paramDecl->varDecls)
     {
@@ -475,10 +496,22 @@ void check_AssignStmt(std::ostream &out, aA_assignStmt as)
         if (!leftType)
             error_print(out, as->pos, "This id is not defined!");
 
-        // 检查类型是否匹配
+        // 检查右值是否定义
         tc_type rightType = check_ArithExpr(out, as->rightVal->u.arithExpr);
-        if (!comp_tc_type(leftType, rightType))
-            error_print(out, as->pos, "Type mismatch!");
+
+        // 若左值类型为空
+        if (leftType->type == nullptr)
+        {
+            // 赋值推断类型
+            leftType->type = rightType->type;
+        }
+        else
+        {
+            // 检查类型是否匹配
+            tc_type rightType = check_ArithExpr(out, as->rightVal->u.arithExpr);
+            if (!comp_tc_type(leftType, rightType))
+                error_print(out, as->pos, "Type mismatch!");
+        }
     }
     break;
     case A_leftValType::A_arrValKind:
@@ -487,12 +520,30 @@ void check_AssignStmt(std::ostream &out, aA_assignStmt as)
         /* fill code here */
         // 检查左值是否定义
         check_ArrayExpr(out, as->leftVal->u.arrExpr);
-
-        // 检查类型是否匹配
+        // 获取左值类型
         tc_type leftType = FindId(&name);
+
+        // 检查右值是否定义
         tc_type rightType = check_ArithExpr(out, as->rightVal->u.arithExpr);
-        if (!comp_tc_type(leftType, rightType))
-            error_print(out, as->pos, "Type mismatch!");
+
+        // 若左值类型为空
+        if (leftType->type == nullptr)
+        {
+            // 若右值不为数组
+            if (rightType->isVarArrFunc != 1)
+                error_print(out, as->pos, "This id is not an array!");
+
+            // 赋值推断类型
+            leftType->type = rightType->type;
+        }
+        else
+        {
+            // 检查类型是否匹配
+            tc_type leftType = FindId(&name);
+            tc_type rightType = check_ArithExpr(out, as->rightVal->u.arithExpr);
+            if (!comp_tc_type(leftType, rightType))
+                error_print(out, as->pos, "Type mismatch!");
+        }
     }
     break;
     case A_leftValType::A_memberValKind:
@@ -502,8 +553,10 @@ void check_AssignStmt(std::ostream &out, aA_assignStmt as)
         // 检查左值是否定义
         tc_type leftType = check_MemberExpr(out, as->leftVal->u.memberExpr);
 
-        // 检查类型是否匹配
+        // 检查右值是否定义
         tc_type rightType = check_ArithExpr(out, as->rightVal->u.arithExpr);
+
+        // 检查类型是否匹配
         if (!comp_tc_type(leftType, rightType))
             error_print(out, as->pos, "Type mismatch!");
     }
@@ -534,13 +587,13 @@ void check_ArrayExpr(std::ostream &out, aA_arrayExpr ae)
     // 检测索引是否为正数
     if (ae->idx->kind == A_indexExprKind::A_numIndexKind)
     {
-        if (ae->idx->u.num < 0)
+        if (ae->idx->u.num <= 0)
             error_print(out, ae->pos, "Array index should be positive!");
     }
     else
     {
         tc_type idx_type = FindId(ae->idx->u.id);
-        if (idx_type->type->type > 0 || idx_type->type->type != A_dataType::A_nativeTypeKind || idx_type->type->u.nativeType != A_nativeType::A_intTypeKind)
+        if (idx_type->type->type != A_dataType::A_nativeTypeKind || idx_type->type->u.nativeType != A_nativeType::A_intTypeKind)
             error_print(out, ae->pos, "Array index should be int!");
     }
     return;
@@ -572,7 +625,7 @@ tc_type check_MemberExpr(std::ostream &out, aA_memberExpr me)
 
     for (auto it = struct2Members[structName]->begin(); it != struct2Members[structName]->end(); it++)
     {
-        if((*it)->kind == A_varDeclType::A_varDeclScalarKind)
+        if ((*it)->kind == A_varDeclType::A_varDeclScalarKind)
         {
             if (*((*it)->u.declScalar->id) == *(me->memberId))
             {
@@ -588,7 +641,6 @@ tc_type check_MemberExpr(std::ostream &out, aA_memberExpr me)
                 return tc_Type((*it)->u.declArray->type, 1);
             }
         }
-
     }
 
     if (!found)
@@ -771,14 +823,14 @@ void check_FuncCall(std::ostream &out, aA_fnCall fc)
         error_print(out, fc->pos, "This function is not defined!");
 
     // check if parameter list matches
-    if(func2Param[func_name]->size() != fc->vals.size())
+    if (func2Param[func_name]->size() != fc->vals.size())
         error_print(out, fc->pos, "Param number mismatch!");
     for (int i = 0; i < fc->vals.size(); i++)
     {
         /* fill code here */
         tc_type paramType = tc_Type((*func2Param[func_name])[i]);
         tc_type valType = check_ArithExpr(out, fc->vals[i]->u.arithExpr);
-        
+
         if (!comp_tc_type(paramType, valType))
             error_print(out, fc->pos, "Param type mismatch!");
     }

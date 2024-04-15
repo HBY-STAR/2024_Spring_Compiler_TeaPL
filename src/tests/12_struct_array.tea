@@ -1,0 +1,18 @@
+struct MyStruct { 
+    node:int,
+    len:int  
+}
+
+fn main(a:int, b:int)->int{
+    let x:MyStruct;
+    let y:MyStruct;
+    let m:MyStruct;
+    let n:MyStruct;
+    let o:MyStruct;
+    let c[2]:MyStruct = {x, y};
+    let d[3]:MyStruct = {m, n, o};
+    let e[2]:int = {a, b};
+    let f[2]:MyStruct = {x, a};
+}
+
+// line 15 Type Missmatch

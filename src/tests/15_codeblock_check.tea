@@ -1,0 +1,17 @@
+let q : MyStruct;
+fn foo(q : int)->int{
+	ret 2 * q;
+}
+
+fn foo1(a:int, b:int)->int{
+    ret foo2(b, a);
+}
+
+fn foo2(a:int, b:int)->int{
+    ret a * x + b;
+}
+
+let x:int = a + 5;
+let a:int = 5;
+
+// line 14
