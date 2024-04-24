@@ -178,7 +178,7 @@ void check_Prog(std::ostream &out, aA_program p)
         }
     }
 
-    print_token_maps();
+    // print_token_maps();
     out << "Typecheck passed!\n"
         << std::endl;
     return;
