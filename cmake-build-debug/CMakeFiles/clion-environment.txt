@@ -1,0 +1,5 @@
+ToolSet: 17.0 (local)@D:\vs
+Ninja: 1.11.1@D:\ToolBox\CLion\bin\ninja\win\x64\ninja.exe
+Options: msvc.arch=x86
+
+Options:-DCMAKE_MAKE_PROGRAM=D:/ToolBox/CLion/bin/ninja/win/x64/ninja.exe

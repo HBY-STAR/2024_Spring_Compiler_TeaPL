@@ -1,0 +1,38 @@
+D:\ToolBox\CLion\bin\cmake\win\x64\bin\cmake.exe -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=D:/ToolBox/CLion/bin/ninja/win/x64/ninja.exe -G Ninja -S \\wsl$\Ubuntu\home\hby\compiler_project -B \\wsl$\Ubuntu\home\hby\compiler_project\cmake-build-debug
+-- The C compiler identification is MSVC 19.39.33523.0
+-- The CXX compiler identification is MSVC 19.39.33523.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - failed
+-- Check for working C compiler: D:/vs/VC/Tools/MSVC/14.39.33519/bin/Hostx86/x86/cl.exe
+-- Check for working C compiler: D:/vs/VC/Tools/MSVC/14.39.33519/bin/Hostx86/x86/cl.exe - broken
+CMake Error at D:/ToolBox/CLion/bin/cmake/win/x64/share/cmake-3.28/Modules/CMakeTestCCompiler.cmake:67 (message):
+  The C compiler
+
+    "D:/vs/VC/Tools/MSVC/14.39.33519/bin/Hostx86/x86/cl.exe"
+
+  is not able to compile a simple test program.
+
+  It fails with the following output:
+
+    Change Dir: '//wsl$/Ubuntu/home/hby/compiler_project/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-8tn0js'
+    
+    Run Build Command(s): D:/ToolBox/CLion/bin/ninja/win/x64/ninja.exe -v cmTC_524cd
+    [1/2] D:\vs\VC\Tools\MSVC\14.39.33519\bin\Hostx86\x86\cl.exe  /nologo   /DWIN32 /D_WINDOWS  /Ob0 /Od /RTC1 -MDd -Zi /showIncludes /FoCMakeFiles\cmTC_524cd.dir\testCCompiler.c.obj /FdCMakeFiles\cmTC_524cd.dir\ /FS -c \\wsl$\Ubuntu\home\hby\compiler_project\cmake-build-debug\CMakeFiles\CMakeScratch\TryCompile-8tn0js\testCCompiler.c
+    [2/2] C:\Windows\system32\cmd.exe /C "cd . && D:\ToolBox\CLion\bin\cmake\win\x64\bin\cmake.exe -E vs_link_exe --intdir=CMakeFiles\cmTC_524cd.dir --rc=D:\WINDOW~2\10\bin\100226~1.0\x86\rc.exe --mt=D:\WINDOW~2\10\bin\100226~1.0\x86\mt.exe --manifests  -- D:\vs\VC\Tools\MSVC\14.39.33519\bin\Hostx86\x86\link.exe /nologo CMakeFiles\cmTC_524cd.dir\testCCompiler.c.obj  /out:cmTC_524cd.exe /implib:cmTC_524cd.lib /pdb:cmTC_524cd.pdb /version:0.0 /machine:X86  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+    FAILED: cmTC_524cd.exe 
+    C:\Windows\system32\cmd.exe /C "cd . && D:\ToolBox\CLion\bin\cmake\win\x64\bin\cmake.exe -E vs_link_exe --intdir=CMakeFiles\cmTC_524cd.dir --rc=D:\WINDOW~2\10\bin\100226~1.0\x86\rc.exe --mt=D:\WINDOW~2\10\bin\100226~1.0\x86\mt.exe --manifests  -- D:\vs\VC\Tools\MSVC\14.39.33519\bin\Hostx86\x86\link.exe /nologo CMakeFiles\cmTC_524cd.dir\testCCompiler.c.obj  /out:cmTC_524cd.exe /implib:cmTC_524cd.lib /pdb:cmTC_524cd.pdb /version:0.0 /machine:X86  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+    '\\wsl$\Ubuntu\home\hby\compiler_project\cmake-build-debug\CMakeFiles\CMakeScratch\TryCompile-8tn0js'
+    CMD.EXE was started with the above path as the current directory.
+    UNC paths are not supported.  Defaulting to Windows directory.
+    ninja: build stopped: subcommand failed.
+    
+    
+
+  
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt:2 (project)
+
+
+-- Configuring incomplete, errors occurred!
