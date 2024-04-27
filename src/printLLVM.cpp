@@ -653,7 +653,8 @@ void LLVMIR::printL_stm(std::ostream &os,LLVMIR::L_stm *stm)
                 }
                 else
                 {
-                    assert(0);
+                    os << "i32 ";
+                    // assert(0);
                 }
             }
             printL_oper(os,v);
@@ -776,6 +777,7 @@ void LLVMIR::printL_func(std::ostream &os,LLVMIR::L_func *func)
 
 void LLVMIR::printL_block(std::ostream &os,LLVMIR::L_block *block)
 {
+    os << block->label->name << ":\n";
     for(const auto &ir : block->instrs)
     {
         printL_stm(os,ir);
