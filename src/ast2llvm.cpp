@@ -1117,10 +1117,10 @@ AS_operand *ast2llvmRightVal(aA_rightVal r)
     }
     case A_boolExprValKind:
     {
-        Temp_label *true_label = Temp_newlabel();
-        Temp_label *false_label = Temp_newlabel();
-
-        return ast2llvmBoolExpr(r->u.boolExpr, nullptr, nullptr);
+        AS_operand* res = ast2llvmBoolExpr(r->u.boolExpr, nullptr, nullptr);
+        Temp_temp *temp = Temp_newtemp_int();
+        emit_irs.push_back(L_Zext(res, AS_Operand_Temp(temp)));
+        return AS_Operand_Temp(temp);
         break;
     }
     default:
@@ -1175,65 +1175,81 @@ AS_operand *ast2llvmBoolExpr(aA_boolExpr b, Temp_label *true_label, Temp_label *
     {
     case A_boolBiOpExprKind:
     {
-        ast2llvmBoolBiOpExpr(b->u.boolBiOpExpr, true_label, false_label);
+        return ast2llvmBoolBiOpExpr(b->u.boolBiOpExpr, true_label, false_label);
         break;
     }
     case A_boolUnitKind:
     {
-        ast2llvmBoolUnit(b->u.boolUnit, true_label, false_label);
+        return ast2llvmBoolUnit(b->u.boolUnit, true_label, false_label);
         break;
     }
     default:
         assert(0);
         break;
     }
-    return nullptr;
 }
 
 // done
-void ast2llvmBoolBiOpExpr(aA_boolBiOpExpr b, Temp_label *true_label, Temp_label *false_label)
+AS_operand *ast2llvmBoolBiOpExpr(aA_boolBiOpExpr b, Temp_label *true_label, Temp_label *false_label)
 {
     if (b->op == A_and)
     {
-        Temp_label *l_true = Temp_newlabel();
-        ast2llvmBoolExpr(b->left, l_true, false_label);
+        Temp_temp *res_temp = Temp_newtemp_int();
+        AS_operand *res = AS_Operand_Temp(res_temp);
 
+        Temp_label *l_true = Temp_newlabel();
+        AS_operand *l_res = ast2llvmBoolExpr(b->left, l_true, false_label);
+        res = l_res;
+
+        emit_irs.push_back(L_Jump(l_true));
         emit_irs.push_back(L_Label(l_true));
         AS_operand *r_res = ast2llvmBoolExpr(b->right, true_label, false_label);
-        emit_irs.push_back(L_Cjump(r_res, true_label, false_label));
+        res = r_res;
 
-        
+        if (true_label && false_label)
+            emit_irs.push_back(L_Cjump(r_res, true_label, false_label));
+
+        return res;
     }
     else
     {
-        Temp_label *l_false = Temp_newlabel();
-        ast2llvmBoolExpr(b->left, true_label, l_false);
+        Temp_temp *res_temp = Temp_newtemp_int();
+        AS_operand *res = AS_Operand_Temp(res_temp);
 
+        Temp_label *l_false = Temp_newlabel();
+        AS_operand *l_res = ast2llvmBoolExpr(b->left, true_label, l_false);
+        res = l_res;
+
+        emit_irs.push_back(L_Jump(l_false));
         emit_irs.push_back(L_Label(l_false));
         AS_operand *r_res = ast2llvmBoolExpr(b->right, true_label, false_label);
-        emit_irs.push_back(L_Cjump(r_res, true_label, false_label));
+        res = r_res;
 
+        if (true_label && false_label)
+            emit_irs.push_back(L_Cjump(r_res, true_label, false_label));
+
+        return res;
     }
 }
 
 // done
-void ast2llvmBoolUnit(aA_boolUnit b, Temp_label *true_label, Temp_label *false_label)
+AS_operand *ast2llvmBoolUnit(aA_boolUnit b, Temp_label *true_label, Temp_label *false_label)
 {
     switch (b->kind)
     {
     case A_comOpExprKind:
     {
-        ast2llvmComOpExpr(b->u.comExpr, true_label, false_label);
+        return ast2llvmComOpExpr(b->u.comExpr, true_label, false_label);
         break;
     }
     case A_boolExprKind:
     {
-        ast2llvmBoolExpr(b->u.boolExpr, true_label, false_label);
+        return ast2llvmBoolExpr(b->u.boolExpr, true_label, false_label);
         break;
     }
     case A_boolUOpExprKind:
     {
-        ast2llvmBoolExpr(b->u.boolExpr, false_label, true_label);
+        return ast2llvmBoolExpr(b->u.boolExpr, false_label, true_label);
         break;
     }
     default:
@@ -1243,7 +1259,7 @@ void ast2llvmBoolUnit(aA_boolUnit b, Temp_label *true_label, Temp_label *false_l
 }
 
 // done
-void ast2llvmComOpExpr(aA_comExpr c, Temp_label *true_label, Temp_label *false_label)
+AS_operand *ast2llvmComOpExpr(aA_comExpr c, Temp_label *true_label, Temp_label *false_label)
 {
     auto l = ast2llvmExprUnit(c->left);
     auto r = ast2llvmExprUnit(c->right);
@@ -1289,7 +1305,10 @@ void ast2llvmComOpExpr(aA_comExpr c, Temp_label *true_label, Temp_label *false_l
     }
     }
 
-    emit_irs.push_back(L_Cjump(AS_Operand_Temp(result), true_label, false_label));
+    if (true_label && false_label)
+        emit_irs.push_back(L_Cjump(AS_Operand_Temp(result), true_label, false_label));
+
+    return AS_Operand_Temp(result);
 }
 
 // done

@@ -39,6 +39,9 @@ L_def* LLVMIR::L_Globaldef(const std::string &name,TempDef def, const std::vecto
     return p;
 }
 
+LLVMIR::L_zext::L_zext(AS_operand *_src,AS_operand *_dst)
+    : src(_src), dst(_dst) {}
+
 LLVMIR::L_binop::L_binop(L_binopKind _op,AS_operand* _left,AS_operand *_right,AS_operand *_dst)
     : op(_op), left(_left), right(_right), dst(_dst) {}
 
@@ -80,6 +83,14 @@ LLVMIR::L_alloca::L_alloca(AS_operand *_dst)
 
 LLVMIR::L_gep::L_gep(AS_operand *_new_ptr,AS_operand *_base_ptr,AS_operand *_index)
     : new_ptr(_new_ptr), base_ptr(_base_ptr), index(_index) {}
+
+L_stm* LLVMIR::L_Zext(AS_operand *src,AS_operand *dst)
+{
+    auto p = new L_stm();
+    p->type = L_StmKind::T_ZEXT;
+    p->u.ZEXT = new L_zext(src,dst);
+    return p;
+}
 
 L_stm* LLVMIR::L_Binop(L_binopKind op,AS_operand* left,AS_operand *right,AS_operand *dst)
 {

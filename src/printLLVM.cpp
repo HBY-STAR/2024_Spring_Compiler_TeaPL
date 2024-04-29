@@ -201,6 +201,15 @@ void LLVMIR::printL_stm(std::ostream &os,LLVMIR::L_stm *stm)
 {
     switch (stm->type)
     {
+    case L_StmKind::T_ZEXT:
+    {
+        os << "  ";
+        printL_oper(os,stm->u.ZEXT->dst);
+        os << " = zext i1 ";
+        printL_oper(os,stm->u.ZEXT->src);
+        os << " to i32";
+        break;
+    }
     case L_StmKind::T_ALLOCA:
     {
         if(stm->u.ALLOCA->dst->kind == OperandKind::TEMP)
