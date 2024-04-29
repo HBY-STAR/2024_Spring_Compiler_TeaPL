@@ -50,10 +50,12 @@ AS_operand *ast2llvmArithExpr(aA_arithExpr a);
 AS_operand *ast2llvmExprUnit(aA_exprUnit e);
 AS_operand *ast2llvmArrayExpr(aA_arrayExpr a);
 AS_operand *ast2llvmMemberExpr(aA_memberExpr a);
-AS_operand *ast2llvmMemberIndex(string &structname, string &membername);
+AS_operand *findMemberIndex(string &structId, string &membername);
 AS_operand *findVal(string &name);
 Name_name *findGlobalVal(string &name);
 Temp_temp *findLocalVal(string &name);
+string findMember(string &structId);
+AS_operand *ast2llvmMemberIndex(aA_leftVal l, string memberId);
 
 LLVMIR::L_prog *ast2llvm(aA_program p);
 LLVMIR::L_func *ast2llvmFuncBlock(Func_local *f);

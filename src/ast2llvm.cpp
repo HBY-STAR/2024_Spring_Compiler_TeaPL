@@ -1117,7 +1117,7 @@ AS_operand *ast2llvmRightVal(aA_rightVal r)
     }
     case A_boolExprValKind:
     {
-        AS_operand* res = ast2llvmBoolExpr(r->u.boolExpr, nullptr, nullptr);
+        AS_operand *res = ast2llvmBoolExpr(r->u.boolExpr, nullptr, nullptr);
         Temp_temp *temp = Temp_newtemp_int();
         emit_irs.push_back(L_Zext(res, AS_Operand_Temp(temp)));
         return AS_Operand_Temp(temp);
@@ -1138,11 +1138,13 @@ AS_operand *ast2llvmLeftVal(aA_leftVal l)
     }
     else if (l->kind == A_arrValKind)
     {
-        return ast2llvmArrayExpr(l->u.arrExpr);
+        AS_operand *arr = ast2llvmArrayExpr(l->u.arrExpr);
+        return arr;
     }
     else if (l->kind == A_memberValKind)
     {
-        return ast2llvmMemberExpr(l->u.memberExpr);
+        AS_operand *member = ast2llvmMemberExpr(l->u.memberExpr);
+        return member;
     }
     else
     {
@@ -1545,6 +1547,29 @@ AS_operand *ast2llvmArrayExpr(aA_arrayExpr a)
     AS_operand *base_ptr = ast2llvmLeftVal(a->arr);
     Temp_temp *temp = Temp_newtemp_int_ptr(0);
     AS_operand *new_ptr = AS_Operand_Temp(temp);
+
+    // switch (base_ptr->kind)
+    // {
+    // case OperandKind::NAME:
+    // {
+    //     if (a->arr->kind == A_memberValKind)
+    //         temp->structname = *a->arr->u.memberExpr->structId->u.id;
+    //     else
+    //         temp->structname = base_ptr->u.NAME->structname;
+    //     break;
+    // }
+    // case OperandKind::TEMP:
+    // {
+    //     if (a->arr->kind == A_memberValKind)
+    //         temp->structname = *a->arr->u.memberExpr->structId->u.id;
+    //     else
+    //         temp->structname = base_ptr->u.TEMP->structname;
+    //     break;
+    // }
+    // default:
+    //     assert(0);
+    // }
+
     emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmIndexExpr(a->idx)));
 
     return new_ptr;
@@ -1556,36 +1581,118 @@ AS_operand *ast2llvmMemberExpr(aA_memberExpr m)
     Temp_temp *temp = Temp_newtemp_int_ptr(0);
     AS_operand *new_ptr = AS_Operand_Temp(temp);
 
-    switch (m->structId->kind)
-    {
-    case A_varValKind:
-    {
-        // cout << "structId: " << *m->structId->u.id << endl;
-        emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(*m->structId->u.id, *m->memberId)));
-        break;
-    }
-    case A_arrValKind:
-    {
-        // cout << "structId: " << *m->structId->u.arrExpr->arr->u.id << endl;
-        emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(*m->structId->u.arrExpr->arr->u.id, *m->memberId)));
-        break;
-    }
-    case A_memberValKind:
-    {
-        // cout << "structId: " << *m->structId->u.memberExpr->structId->u.id << endl;
-        emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(*m->structId->u.memberExpr->structId->u.id, *m->memberId)));
-        break;
-    }
-    default:
-        break;
-    }
+    // switch (base_ptr->kind)
+    // {
+    // case OperandKind::NAME:
+    // {
+    //     cout << "structname: " << base_ptr->u.NAME->structname << endl;
+    //     cout << "membername: " << *m->memberId << endl;
+    //     if (m->structId->kind == A_memberValKind)
+    //     {
+    //         temp = Temp_newtemp_struct_ptr(0, base_ptr->u.NAME->structname);
+    //         temp->structname = *m->structId->u.memberExpr->structId->u.id;
+    //     }
+    //     else
+    //     {
+    //         temp = Temp_newtemp_int_ptr(0, base_ptr->u.NAME->structname);
+    //         temp->structname = base_ptr->u.NAME->structname;
+    //     }
+    //     emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(base_ptr->u.NAME->structname, *m->memberId)));
+    //     break;
+    // }
+    // case OperandKind::TEMP:
+    // {
+    //     cout << "structname: " << base_ptr->u.TEMP->structname << endl;
+    //     cout << "membername: " << *m->memberId << endl;
+    //     if (m->structId->kind == A_memberValKind)
+    //         temp->structname = *m->structId->u.memberExpr->structId->u.id;
+    //     else
+    //         temp->structname = base_ptr->u.TEMP->structname;
+    //     emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(base_ptr->u.TEMP->structname, *m->memberId)));
+    //     break;
+    // }
+    // default:
+    //     assert(0);
+    // }
+    // string structname;
+    // switch (m->structId->kind)
+    // {
+    // case A_varValKind:
+    // {
+    //     structname = findMember(*m->structId->u.id);
+    //     // cout << "structId: " << *m->structId->u.id << endl;
+    //     // emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(*m->structId->u.id, *m->memberId)));
+    //     break;
+    // }
+    // case A_arrValKind:
+    // {
+    //     structname = findMember(*m->structId->u.arrExpr->arr->u.id);
+    //     // aA_leftVal *ptr = &m->structId->u.arrExpr->arr;
+    //     // //cout << "arrId: " << *((*ptr)->u.id) << endl;
+    //     // while (1)
+    //     // {
+    //     //     if ((*ptr)->kind == A_memberValKind)
+    //     //     {
+    //     //         structname = *((*ptr)->u.memberExpr->structId->u.id);
+    //     //         ptr = &(*ptr)->u.memberExpr->structId;
+    //     //     }
+    //     //     else if ((*ptr)->kind == A_arrValKind)
+    //     //     {
+    //     //         structname = *((*ptr)->u.arrExpr->arr->u.id);
+    //     //         ptr = &(*ptr)->u.arrExpr->arr;
+    //     //     }
+    //     //     else
+    //     //     {
+    //     //         structname = *((*ptr)->u.id);
+    //     //         break;
+    //     //     }
+    //     // }
+    //     // cout << "structId: " << *m->structId->u.arrExpr->arr->u.id << endl;
+    //     // emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(*m->structId->u.arrExpr->arr->u.id, *m->memberId)));
+    //     break;
+    // }
+    // case A_memberValKind:
+    // {
+    //     // cout << int(m->structId->u.memberExpr->structId->kind) << endl;
+    //     //  cout << *m->structId->u.memberExpr->structId->u.id;
+    //     // structname = findMember(*m->structId->u.memberExpr->structId->u.id);
+    //     // aA_leftVal *ptr = &m->structId->u.memberExpr->structId;
+    //     // //cout << "structId: " << *((*ptr)->u.id) << endl;
+    //     // cout << int((*ptr)->kind) << endl;
+    //     // while (1)
+    //     // {
+    //     //     if ((*ptr)->kind == A_memberValKind)
+    //     //     {
+    //     //         structname = *((*ptr)->u.memberExpr->structId->u.id);
+    //     //         ptr = &(*ptr)->u.memberExpr->structId;
+    //     //     }
+    //     //     else if ((*ptr)->kind == A_arrValKind)
+    //     //     {
+    //     //         structname = *((*ptr)->u.arrExpr->arr->u.id);
+    //     //         ptr = &(*ptr)->u.arrExpr->arr;
+    //     //     }
+    //     //     else
+    //     //     {
+    //     //         structname = *((*ptr)->u.id);
+    //     //         break;
+    //     //     }
+    //     // }
+    //     // cout << "structId: " << *m->structId->u.memberExpr->structId->u.id << endl;
+    //     emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(*m->structId->u.memberExpr->structId->u.id, *m->memberId)));
+    //     break;
+    // }
+    // default:
+    //     assert(0);
+    //     break;
+    // }
 
+    emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(m->structId, *m->memberId)));
     return new_ptr;
 }
 
-AS_operand *ast2llvmMemberIndex(string &structId, string &membername)
+string findMember(string &structId)
 {
-    cout << "structId: " << structId << " membername: " << membername << endl;
+    // cout << "structId: " << structId << endl;
     Temp_temp *local = findLocalVal(structId);
     Name_name *global = findGlobalVal(structId);
     string structname;
@@ -1601,7 +1708,43 @@ AS_operand *ast2llvmMemberIndex(string &structId, string &membername)
     {
         assert(0);
     }
+    return structname;
+}
 
+AS_operand *ast2llvmMemberIndex(aA_leftVal l, string memberId)
+{
+    switch (l->kind)
+    {
+    case A_varValKind:
+    {
+        string structname = findMember(*l->u.id);
+        // cout << "val structname: " << structname << endl;
+        return findMemberIndex(structname, memberId);
+        break;
+    }
+    case A_arrValKind:
+    {
+        // cout << "arr structname: " << findMember(*l->u.arrExpr->arr->u.id) << endl;
+        return ast2llvmMemberIndex(l->u.arrExpr->arr, memberId);
+        break;
+    }
+    case A_memberValKind:
+    {
+        // cout << "member structname: " << findMember(*l->u.memberExpr->structId->u.id) << endl;
+        return ast2llvmMemberIndex(l->u.memberExpr->structId, memberId);
+        break;
+    }
+    default:
+        assert(0);
+        break;
+    }
+}
+
+AS_operand *findMemberIndex(string &structname, string &membername)
+{
+    // string structname = findMember(structId);
+    // cout << "structname: " << structname << endl;
+    // cout << "membername: " << membername << endl;
     auto it = structInfoMap.find(structname);
     if (it != structInfoMap.end())
     {
@@ -1612,12 +1755,40 @@ AS_operand *ast2llvmMemberIndex(string &structId, string &membername)
         }
         else
         {
-            assert(0);
+            AS_operand *find;
+            for (auto i = it->second.memberinfos.begin(); i != it->second.memberinfos.end(); i++)
+            {
+                if (i->second.def.kind == TempType::STRUCT_TEMP)
+                {
+                    AS_operand *temp = findMemberIndex(i->second.def.structname, membername);
+                    if (temp)
+                        return temp;
+                }
+                else if (i->second.def.kind == TempType::STRUCT_PTR)
+                {
+                    AS_operand *temp = findMemberIndex(i->second.def.structname, membername);
+                    if (temp)
+                        return temp;
+                }
+                else if (i->second.def.kind == TempType::INT_TEMP)
+                {
+                    continue;
+                }
+                else if (i->second.def.kind == TempType::INT_PTR)
+                {
+                    continue;
+                }
+                else
+                {
+                    return nullptr;
+                }
+            }
+            return nullptr;
         }
     }
     else
     {
-        assert(0);
+        return nullptr;
     }
 }
 
