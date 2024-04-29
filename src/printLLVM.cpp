@@ -353,6 +353,7 @@ void LLVMIR::printL_stm(std::ostream &os,LLVMIR::L_stm *stm)
     {
         os << "  br i1 ";
         printL_oper(os,stm->u.CJUMP->dst);
+        if(stm->u.CJUMP->true_label && stm->u.CJUMP->false_label)
         os << ", label %" << stm->u.CJUMP->true_label->name << ", label %" << stm->u.CJUMP->false_label->name << "\n";
         break;
     }
