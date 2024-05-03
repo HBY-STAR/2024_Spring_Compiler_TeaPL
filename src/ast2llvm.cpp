@@ -542,7 +542,6 @@ std::vector<Func_local *> ast2llvmProg_second(aA_program p)
     return funcs;
 }
 
-// done
 Func_local *ast2llvmFunc(aA_fnDef f)
 {
     emit_irs.clear();
@@ -563,13 +562,7 @@ Func_local *ast2llvmFunc(aA_fnDef f)
             if (decl->u.declScalar->type->type == A_structTypeKind)
             {
                 temp = Temp_newtemp_struct_ptr(0, *decl->u.declScalar->type->u.structType);
-                // new_temp = Temp_newtemp_struct_ptr(0, *decl->u.declScalar->type->u.structType);
-
                 args.push_back(temp);
-
-                // emit_irs.push_back(L_Alloca(AS_Operand_Temp(new_temp)));
-                // emit_irs.push_back(L_Store(AS_Operand_Temp(temp), AS_Operand_Temp(new_temp)));
-
                 localVarMap.emplace(*decl->u.declArray->id, temp);
             }
             else
@@ -587,21 +580,15 @@ Func_local *ast2llvmFunc(aA_fnDef f)
         else if (decl->kind == A_varDeclArrayKind)
         {
             Temp_temp *temp;
-            // Temp_temp *new_temp;
             if (decl->u.declArray->type->type == A_structTypeKind)
             {
                 temp = Temp_newtemp_struct_ptr(decl->u.declArray->len, *decl->u.declArray->type->u.structType);
-                // new_temp = Temp_newtemp_struct_ptr(decl->u.declArray->len, *decl->u.declArray->type->u.structType);
             }
             else
             {
                 temp = Temp_newtemp_int_ptr(decl->u.declArray->len);
-                // new_temp = Temp_newtemp_int_ptr(decl->u.declArray->len);
             }
             args.push_back(temp);
-
-            // emit_irs.push_back(L_Alloca(AS_Operand_Temp(new_temp)));
-            // emit_irs.push_back(L_Store(AS_Operand_Temp(temp), AS_Operand_Temp(new_temp)));
 
             localVarMap.emplace(*decl->u.declArray->id, temp);
         }
@@ -610,34 +597,6 @@ Func_local *ast2llvmFunc(aA_fnDef f)
             assert(0);
         }
     }
-    // IR
-    // for (const auto &arg : args)
-    // {
-    //     Temp_temp *temp;
-    //     if (arg->type == TempType::INT_TEMP)
-    //     {
-    //         temp = Temp_newtemp_int_ptr(0);
-    //     }
-    //     else if (arg->type == TempType::INT_PTR)
-    //     {
-    //         temp = Temp_newtemp_int_ptr(arg->len);
-    //     }
-    //     else if (arg->type == TempType::STRUCT_TEMP)
-    //     {
-    //         temp = Temp_newtemp_struct_ptr(0, arg->structname);
-    //     }
-    //     else if (arg->type == TempType::STRUCT_PTR)
-    //     {
-    //         temp = Temp_newtemp_struct_ptr(arg->len, arg->structname);
-    //     }
-    //     else
-    //     {
-    //         assert(0);
-    //     }
-    //     localVarMap.emplace(arg->varname, temp);
-    //     emit_irs.push_back(L_Alloca(AS_Operand_Temp(temp)));
-    //     emit_irs.push_back(L_Store(AS_Operand_Temp(arg), AS_Operand_Temp(temp)));
-    // }
 
     // 处理函数体
     for (const auto &v : f->stmts)
@@ -785,8 +744,6 @@ Func_local *ast2llvmFunc(aA_fnDef f)
             vector<AS_operand *> args;
             for (const auto &arg : v->u.callStmt->fnCall->vals)
             {
-                // if (arg->u.arithExpr->u.exprUnit->kind == A_idExprKind)
-                //     cout << "arg: " << *arg->u.arithExpr->u.exprUnit->u.id << endl;
                 args.push_back(ast2llvmRightVal(arg));
             }
             emit_irs.push_back(L_Voidcall(*v->u.callStmt->fnCall->fn, args));
@@ -879,7 +836,6 @@ Func_local *ast2llvmFunc(aA_fnDef f)
     return new Func_local(*f->fnDecl->id, funcReturnMap[*f->fnDecl->id], args, emit_irs);
 }
 
-// done
 void ast2llvmBlock(aA_codeBlockStmt b, Temp_label *con_label, Temp_label *bre_label)
 {
     if (b->kind == A_nullStmtKind)
@@ -1101,7 +1057,6 @@ void ast2llvmBlock(aA_codeBlockStmt b, Temp_label *con_label, Temp_label *bre_la
     }
 }
 
-// done
 AS_operand *ast2llvmRightVal(aA_rightVal r)
 {
     if (r == nullptr)
@@ -1184,7 +1139,6 @@ AS_operand *ast2llvmIndexExpr(aA_indexExpr index)
     }
 }
 
-// done
 AS_operand *ast2llvmBoolExpr(aA_boolExpr b, Temp_label *true_label, Temp_label *false_label)
 {
     switch (b->kind)
@@ -1205,7 +1159,6 @@ AS_operand *ast2llvmBoolExpr(aA_boolExpr b, Temp_label *true_label, Temp_label *
     }
 }
 
-// done
 AS_operand *ast2llvmBoolBiOpExpr(aA_boolBiOpExpr b, Temp_label *true_label, Temp_label *false_label)
 {
     if (b->op == A_and)
@@ -1218,17 +1171,8 @@ AS_operand *ast2llvmBoolBiOpExpr(aA_boolBiOpExpr b, Temp_label *true_label, Temp
         Temp_label *l_true = Temp_newlabel();
         AS_operand *l_res = ast2llvmBoolExpr(b->left, l_true, false_label);
 
-        // Temp_temp *l_i32 = Temp_newtemp_int();
-        // emit_irs.push_back(L_Zext(l_res, AS_Operand_Temp(l_i32)));
-        // emit_irs.push_back(L_Store(AS_Operand_Temp(l_i32), res));
-        // emit_irs.push_back(L_Jump(l_true));
-
         emit_irs.push_back(L_Label(l_true));
         AS_operand *r_res = ast2llvmBoolExpr(b->right, true_label, false_label);
-        
-        // Temp_temp *r_i32 = Temp_newtemp_int();
-        // emit_irs.push_back(L_Zext(r_res, AS_Operand_Temp(r_i32)));
-        // emit_irs.push_back(L_Store(AS_Operand_Temp(r_i32), res));
 
         if (true_label && false_label)
             emit_irs.push_back(L_Cjump(r_res, true_label, false_label));
@@ -1245,17 +1189,8 @@ AS_operand *ast2llvmBoolBiOpExpr(aA_boolBiOpExpr b, Temp_label *true_label, Temp
         Temp_label *l_false = Temp_newlabel();
         AS_operand *l_res = ast2llvmBoolExpr(b->left, true_label, l_false);
 
-        // Temp_temp *l_i32 = Temp_newtemp_int();
-        // emit_irs.push_back(L_Zext(l_res, AS_Operand_Temp(l_i32)));
-        // emit_irs.push_back(L_Store(AS_Operand_Temp(l_i32), res));
-        // emit_irs.push_back(L_Jump(l_false));
-
         emit_irs.push_back(L_Label(l_false));
         AS_operand *r_res = ast2llvmBoolExpr(b->right, true_label, false_label);
-        
-        // Temp_temp *r_i32 = Temp_newtemp_int();
-        // emit_irs.push_back(L_Zext(r_res, AS_Operand_Temp(r_i32)));
-        // emit_irs.push_back(L_Store(AS_Operand_Temp(r_i32), res));
 
         if (true_label && false_label)
             emit_irs.push_back(L_Cjump(r_res, true_label, false_label));
@@ -1264,7 +1199,6 @@ AS_operand *ast2llvmBoolBiOpExpr(aA_boolBiOpExpr b, Temp_label *true_label, Temp
     }
 }
 
-// done
 AS_operand *ast2llvmBoolUnit(aA_boolUnit b, Temp_label *true_label, Temp_label *false_label)
 {
     switch (b->kind)
@@ -1290,7 +1224,6 @@ AS_operand *ast2llvmBoolUnit(aA_boolUnit b, Temp_label *true_label, Temp_label *
     }
 }
 
-// done
 AS_operand *ast2llvmComOpExpr(aA_comExpr c, Temp_label *true_label, Temp_label *false_label)
 {
     auto l = ast2llvmExprUnit(c->left);
@@ -1343,7 +1276,6 @@ AS_operand *ast2llvmComOpExpr(aA_comExpr c, Temp_label *true_label, Temp_label *
     return AS_Operand_Temp(result);
 }
 
-// done
 AS_operand *ast2llvmArithBiOpExpr(aA_arithBiOpExpr a)
 {
     auto l = ast2llvmArithExpr(a->left);
@@ -1380,7 +1312,6 @@ AS_operand *ast2llvmArithBiOpExpr(aA_arithBiOpExpr a)
     return AS_Operand_Temp(result);
 }
 
-// done
 AS_operand *ast2llvmArithUExpr(aA_arithUExpr a)
 {
     if (a->op == A_neg)
@@ -1402,7 +1333,6 @@ AS_operand *ast2llvmArithUExpr(aA_arithUExpr a)
     }
 }
 
-// done
 AS_operand *ast2llvmArithExpr(aA_arithExpr a)
 {
     switch (a->kind)
@@ -1423,7 +1353,6 @@ AS_operand *ast2llvmArithExpr(aA_arithExpr a)
     }
 }
 
-// done
 AS_operand *ast2llvmExprUnit(aA_exprUnit e)
 {
     if (e->kind == A_numExprKind)
@@ -1455,7 +1384,6 @@ AS_operand *ast2llvmExprUnit(aA_exprUnit e)
                 }
                 else if (val->u.TEMP->len > 0)
                 {
-                    // temp = Temp_newtemp_int_ptr(val->u.NAME->len);
                     return val;
                 }
                 else
@@ -1466,13 +1394,11 @@ AS_operand *ast2llvmExprUnit(aA_exprUnit e)
             }
             case TempType::STRUCT_TEMP:
             {
-                // temp = Temp_newtemp_struct_ptr(0, val->u.TEMP->structname);
                 return val;
                 break;
             }
             case TempType::STRUCT_PTR:
             {
-                // temp = Temp_newtemp_struct_ptr(val->u.TEMP->len, val->u.TEMP->structname);
                 return val;
                 break;
             }
@@ -1501,7 +1427,6 @@ AS_operand *ast2llvmExprUnit(aA_exprUnit e)
                 }
                 else if (val->u.NAME->len > 0)
                 {
-                    // temp = Temp_newtemp_int_ptr(val->u.NAME->len);
                     return val;
                 }
                 else
@@ -1512,13 +1437,11 @@ AS_operand *ast2llvmExprUnit(aA_exprUnit e)
             }
             case TempType::STRUCT_TEMP:
             {
-                // temp = Temp_newtemp_struct_ptr(0, val->u.NAME->structname);
                 return val;
                 break;
             }
             case TempType::STRUCT_PTR:
             {
-                // temp = Temp_newtemp_struct_ptr(val->u.NAME->len, val->u.NAME->structname);
                 return val;
                 break;
             }
@@ -1578,28 +1501,6 @@ AS_operand *ast2llvmArrayExpr(aA_arrayExpr a)
     Temp_temp *temp = Temp_newtemp_int_ptr(0);
     AS_operand *new_ptr = AS_Operand_Temp(temp);
 
-    // switch (base_ptr->kind)
-    // {
-    // case OperandKind::NAME:
-    // {
-    //     if (a->arr->kind == A_memberValKind)
-    //         temp->structname = *a->arr->u.memberExpr->structId->u.id;
-    //     else
-    //         temp->structname = base_ptr->u.NAME->structname;
-    //     break;
-    // }
-    // case OperandKind::TEMP:
-    // {
-    //     if (a->arr->kind == A_memberValKind)
-    //         temp->structname = *a->arr->u.memberExpr->structId->u.id;
-    //     else
-    //         temp->structname = base_ptr->u.TEMP->structname;
-    //     break;
-    // }
-    // default:
-    //     assert(0);
-    // }
-
     emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmIndexExpr(a->idx)));
 
     return new_ptr;
@@ -1611,118 +1512,12 @@ AS_operand *ast2llvmMemberExpr(aA_memberExpr m)
     Temp_temp *temp = Temp_newtemp_int_ptr(0);
     AS_operand *new_ptr = AS_Operand_Temp(temp);
 
-    // switch (base_ptr->kind)
-    // {
-    // case OperandKind::NAME:
-    // {
-    //     cout << "structname: " << base_ptr->u.NAME->structname << endl;
-    //     cout << "membername: " << *m->memberId << endl;
-    //     if (m->structId->kind == A_memberValKind)
-    //     {
-    //         temp = Temp_newtemp_struct_ptr(0, base_ptr->u.NAME->structname);
-    //         temp->structname = *m->structId->u.memberExpr->structId->u.id;
-    //     }
-    //     else
-    //     {
-    //         temp = Temp_newtemp_int_ptr(0, base_ptr->u.NAME->structname);
-    //         temp->structname = base_ptr->u.NAME->structname;
-    //     }
-    //     emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(base_ptr->u.NAME->structname, *m->memberId)));
-    //     break;
-    // }
-    // case OperandKind::TEMP:
-    // {
-    //     cout << "structname: " << base_ptr->u.TEMP->structname << endl;
-    //     cout << "membername: " << *m->memberId << endl;
-    //     if (m->structId->kind == A_memberValKind)
-    //         temp->structname = *m->structId->u.memberExpr->structId->u.id;
-    //     else
-    //         temp->structname = base_ptr->u.TEMP->structname;
-    //     emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(base_ptr->u.TEMP->structname, *m->memberId)));
-    //     break;
-    // }
-    // default:
-    //     assert(0);
-    // }
-    // string structname;
-    // switch (m->structId->kind)
-    // {
-    // case A_varValKind:
-    // {
-    //     structname = findMember(*m->structId->u.id);
-    //     // cout << "structId: " << *m->structId->u.id << endl;
-    //     // emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(*m->structId->u.id, *m->memberId)));
-    //     break;
-    // }
-    // case A_arrValKind:
-    // {
-    //     structname = findMember(*m->structId->u.arrExpr->arr->u.id);
-    //     // aA_leftVal *ptr = &m->structId->u.arrExpr->arr;
-    //     // //cout << "arrId: " << *((*ptr)->u.id) << endl;
-    //     // while (1)
-    //     // {
-    //     //     if ((*ptr)->kind == A_memberValKind)
-    //     //     {
-    //     //         structname = *((*ptr)->u.memberExpr->structId->u.id);
-    //     //         ptr = &(*ptr)->u.memberExpr->structId;
-    //     //     }
-    //     //     else if ((*ptr)->kind == A_arrValKind)
-    //     //     {
-    //     //         structname = *((*ptr)->u.arrExpr->arr->u.id);
-    //     //         ptr = &(*ptr)->u.arrExpr->arr;
-    //     //     }
-    //     //     else
-    //     //     {
-    //     //         structname = *((*ptr)->u.id);
-    //     //         break;
-    //     //     }
-    //     // }
-    //     // cout << "structId: " << *m->structId->u.arrExpr->arr->u.id << endl;
-    //     // emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(*m->structId->u.arrExpr->arr->u.id, *m->memberId)));
-    //     break;
-    // }
-    // case A_memberValKind:
-    // {
-    //     // cout << int(m->structId->u.memberExpr->structId->kind) << endl;
-    //     //  cout << *m->structId->u.memberExpr->structId->u.id;
-    //     // structname = findMember(*m->structId->u.memberExpr->structId->u.id);
-    //     // aA_leftVal *ptr = &m->structId->u.memberExpr->structId;
-    //     // //cout << "structId: " << *((*ptr)->u.id) << endl;
-    //     // cout << int((*ptr)->kind) << endl;
-    //     // while (1)
-    //     // {
-    //     //     if ((*ptr)->kind == A_memberValKind)
-    //     //     {
-    //     //         structname = *((*ptr)->u.memberExpr->structId->u.id);
-    //     //         ptr = &(*ptr)->u.memberExpr->structId;
-    //     //     }
-    //     //     else if ((*ptr)->kind == A_arrValKind)
-    //     //     {
-    //     //         structname = *((*ptr)->u.arrExpr->arr->u.id);
-    //     //         ptr = &(*ptr)->u.arrExpr->arr;
-    //     //     }
-    //     //     else
-    //     //     {
-    //     //         structname = *((*ptr)->u.id);
-    //     //         break;
-    //     //     }
-    //     // }
-    //     // cout << "structId: " << *m->structId->u.memberExpr->structId->u.id << endl;
-    //     emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(*m->structId->u.memberExpr->structId->u.id, *m->memberId)));
-    //     break;
-    // }
-    // default:
-    //     assert(0);
-    //     break;
-    // }
-
     emit_irs.push_back(L_Gep(new_ptr, base_ptr, ast2llvmMemberIndex(m->structId, *m->memberId)));
     return new_ptr;
 }
 
 string findMember(string &structId)
 {
-    // cout << "structId: " << structId << endl;
     Temp_temp *local = findLocalVal(structId);
     Name_name *global = findGlobalVal(structId);
     string structname;
@@ -1748,19 +1543,16 @@ AS_operand *ast2llvmMemberIndex(aA_leftVal l, string memberId)
     case A_varValKind:
     {
         string structname = findMember(*l->u.id);
-        // cout << "val structname: " << structname << endl;
         return findMemberIndex(structname, memberId);
         break;
     }
     case A_arrValKind:
     {
-        // cout << "arr structname: " << findMember(*l->u.arrExpr->arr->u.id) << endl;
         return ast2llvmMemberIndex(l->u.arrExpr->arr, memberId);
         break;
     }
     case A_memberValKind:
     {
-        // cout << "member structname: " << findMember(*l->u.memberExpr->structId->u.id) << endl;
         return ast2llvmMemberIndex(l->u.memberExpr->structId, memberId);
         break;
     }
@@ -1772,9 +1564,6 @@ AS_operand *ast2llvmMemberIndex(aA_leftVal l, string memberId)
 
 AS_operand *findMemberIndex(string &structname, string &membername)
 {
-    // string structname = findMember(structId);
-    // cout << "structname: " << structname << endl;
-    // cout << "membername: " << membername << endl;
     auto it = structInfoMap.find(structname);
     if (it != structInfoMap.end())
     {

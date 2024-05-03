@@ -182,7 +182,6 @@ int calc(char *s, int len);
 
 %%
 
-// This function takes a string of digits and its length as input, and returns the integer value of the string.
 int calc(char *s, int len) {
     int ret = 0;
     for(int i = 0; i < len; i++)
