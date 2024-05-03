@@ -1134,6 +1134,7 @@ AS_operand *ast2llvmRightVal(aA_rightVal r)
         emit_irs.push_back(L_Label(end_label));
         emit_irs.push_back(L_Load(AS_Operand_Temp(temp), res));
         return AS_Operand_Temp(temp);
+        return ast2llvmBoolExpr(r->u.boolExpr, nullptr, nullptr);
         break;
     }
     default:
@@ -1217,17 +1218,17 @@ AS_operand *ast2llvmBoolBiOpExpr(aA_boolBiOpExpr b, Temp_label *true_label, Temp
         Temp_label *l_true = Temp_newlabel();
         AS_operand *l_res = ast2llvmBoolExpr(b->left, l_true, false_label);
 
-        Temp_temp *l_i32 = Temp_newtemp_int();
-        emit_irs.push_back(L_Zext(l_res, AS_Operand_Temp(l_i32)));
-        emit_irs.push_back(L_Store(AS_Operand_Temp(l_i32), res));
-        emit_irs.push_back(L_Jump(l_true));
+        // Temp_temp *l_i32 = Temp_newtemp_int();
+        // emit_irs.push_back(L_Zext(l_res, AS_Operand_Temp(l_i32)));
+        // emit_irs.push_back(L_Store(AS_Operand_Temp(l_i32), res));
+        // emit_irs.push_back(L_Jump(l_true));
 
         emit_irs.push_back(L_Label(l_true));
         AS_operand *r_res = ast2llvmBoolExpr(b->right, true_label, false_label);
         
-        Temp_temp *r_i32 = Temp_newtemp_int();
-        emit_irs.push_back(L_Zext(r_res, AS_Operand_Temp(r_i32)));
-        emit_irs.push_back(L_Store(AS_Operand_Temp(r_i32), res));
+        // Temp_temp *r_i32 = Temp_newtemp_int();
+        // emit_irs.push_back(L_Zext(r_res, AS_Operand_Temp(r_i32)));
+        // emit_irs.push_back(L_Store(AS_Operand_Temp(r_i32), res));
 
         if (true_label && false_label)
             emit_irs.push_back(L_Cjump(r_res, true_label, false_label));
@@ -1244,17 +1245,17 @@ AS_operand *ast2llvmBoolBiOpExpr(aA_boolBiOpExpr b, Temp_label *true_label, Temp
         Temp_label *l_false = Temp_newlabel();
         AS_operand *l_res = ast2llvmBoolExpr(b->left, true_label, l_false);
 
-        Temp_temp *l_i32 = Temp_newtemp_int();
-        emit_irs.push_back(L_Zext(l_res, AS_Operand_Temp(l_i32)));
-        emit_irs.push_back(L_Store(AS_Operand_Temp(l_i32), res));
-        emit_irs.push_back(L_Jump(l_false));
+        // Temp_temp *l_i32 = Temp_newtemp_int();
+        // emit_irs.push_back(L_Zext(l_res, AS_Operand_Temp(l_i32)));
+        // emit_irs.push_back(L_Store(AS_Operand_Temp(l_i32), res));
+        // emit_irs.push_back(L_Jump(l_false));
 
         emit_irs.push_back(L_Label(l_false));
         AS_operand *r_res = ast2llvmBoolExpr(b->right, true_label, false_label);
         
-        Temp_temp *r_i32 = Temp_newtemp_int();
-        emit_irs.push_back(L_Zext(r_res, AS_Operand_Temp(r_i32)));
-        emit_irs.push_back(L_Store(AS_Operand_Temp(r_i32), res));
+        // Temp_temp *r_i32 = Temp_newtemp_int();
+        // emit_irs.push_back(L_Zext(r_res, AS_Operand_Temp(r_i32)));
+        // emit_irs.push_back(L_Store(AS_Operand_Temp(r_i32), res));
 
         if (true_label && false_label)
             emit_irs.push_back(L_Cjump(r_res, true_label, false_label));
