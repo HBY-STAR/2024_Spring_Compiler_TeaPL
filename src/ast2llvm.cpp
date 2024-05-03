@@ -548,7 +548,7 @@ Func_local *ast2llvmFunc(aA_fnDef f)
     emit_irs.clear();
     localVarMap.clear();
 
-    Temp_label *func_first_label = Temp_newlabel_named(*f->fnDecl->id);
+    Temp_label *func_first_label = Temp_newlabel();
     emit_irs.push_back(L_Label(func_first_label));
 
     // 处理函数参数
