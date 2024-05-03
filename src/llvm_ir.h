@@ -89,7 +89,7 @@ enum class L_relopKind
 
 enum class L_StmKind
 {
-    T_BINOP, T_LOAD, T_STORE, T_LABEL,T_JUMP, T_CMP, T_CJUMP, T_MOVE, T_CALL, T_VOID_CALL, T_RETURN, T_PHI, T_NULL, T_ALLOCA, T_GEP
+    T_ZEXT, T_BINOP, T_LOAD, T_STORE, T_LABEL,T_JUMP, T_CMP, T_CJUMP, T_MOVE, T_CALL, T_VOID_CALL, T_RETURN, T_PHI, T_NULL, T_ALLOCA, T_GEP
 };
 
 struct L_binop
@@ -97,6 +97,12 @@ struct L_binop
     L_binopKind op;
     AS_operand *left,*right,*dst;
     L_binop(L_binopKind _op,AS_operand* _left,AS_operand *_right,AS_operand *_dst);
+};
+
+struct L_zext
+{
+    AS_operand *src,*dst;
+    L_zext(AS_operand *_src,AS_operand *_dst);
 };
 
 struct L_load
@@ -188,6 +194,7 @@ struct L_stm
 {
     L_StmKind type;
     union {
+        L_zext *ZEXT;
         L_binop *BINOP;
         L_load *LOAD;
         L_store *STORE;
@@ -198,13 +205,14 @@ struct L_stm
         L_move *MOVE;
         L_call *CALL;
         L_voidcall *VOID_CALL;
-        L_ret *RET;
+        L_ret *RETURN;
         L_phi *PHI;
         L_alloca *ALLOCA;
         L_gep *GEP;
     } u;
 };
 
+L_stm* L_Zext(AS_operand *src,AS_operand *dst);
 L_stm* L_Binop(L_binopKind op,AS_operand* left,AS_operand *right,AS_operand *dst);
 L_stm* L_Load(AS_operand *dst,AS_operand *ptr);
 L_stm* L_Store(AS_operand *src,AS_operand *ptr);
