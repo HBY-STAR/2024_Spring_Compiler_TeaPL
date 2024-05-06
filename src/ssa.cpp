@@ -45,7 +45,7 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         init_table();
         combine_addr(fun);
 
-        std::ofstream debugStream; 
+        std::ofstream debugStream;
         debugStream.open("debug.ll");
         printL_func(debugStream, fun);
         mem2reg(fun);
@@ -117,7 +117,7 @@ void combine_addr(LLVMIR::L_func *fun)
     }
 }
 
-//   Todo
+// done
 void mem2reg(LLVMIR::L_func *fun)
 {
     for (auto block_it = fun->blocks.begin(); block_it != fun->blocks.end(); ++block_it)
@@ -130,7 +130,7 @@ void mem2reg(LLVMIR::L_func *fun)
             {
                 temp2ASoper.clear();
 
-                // 处理 ALLOCA 指令
+                // 获取 ALLOCA 操作数
                 Temp_temp *temp = stm->u.ALLOCA->dst->u.TEMP;
                 // 删除 ALLOCA 指令
                 stm_it = block->instrs.erase(stm_it);
@@ -142,17 +142,47 @@ void mem2reg(LLVMIR::L_func *fun)
                     for (auto stm2_it = block2->instrs.begin(); stm2_it != block2->instrs.end();)
                     {
                         auto stm2 = *stm2_it;
-                        if (stm2->type == L_StmKind::T_LOAD && stm2->u.LOAD->ptr->kind == OperandKind::TEMP && stm2->u.LOAD->ptr->u.TEMP == temp)
+                        if (stm2->type == L_StmKind::T_LOAD && stm2->u.LOAD->dst->kind == OperandKind::TEMP && stm2->u.LOAD->ptr->u.TEMP == temp)
                         {
-                            temp2ASoper[stm2->u.LOAD->dst->u.TEMP] = stm2->u.LOAD->ptr;
+                            if (temp2ASoper.find(stm2->u.LOAD->ptr->u.TEMP) != temp2ASoper.end())
+                            {
+                                temp2ASoper[stm2->u.LOAD->dst->u.TEMP] = temp2ASoper[stm2->u.LOAD->ptr->u.TEMP];
+                            }
+                            else
+                            {
+                                temp2ASoper[stm2->u.LOAD->dst->u.TEMP] = stm2->u.LOAD->ptr;
+                            }
                             // 删除 LOAD 指令
                             stm2_it = block2->instrs.erase(stm2_it);
                         }
                         else if (stm2->type == L_StmKind::T_STORE && stm2->u.STORE->src->kind == OperandKind::TEMP && stm2->u.STORE->ptr->u.TEMP == temp)
                         {
-                            temp2ASoper[stm2->u.STORE->src->u.TEMP] = stm2->u.STORE->ptr;
+                            if (temp2ASoper.find(stm2->u.STORE->src->u.TEMP) != temp2ASoper.end())
+                            {
+                                temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = temp2ASoper[stm2->u.STORE->src->u.TEMP];
+                            }
+                            else
+                            {
+                                temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = stm2->u.STORE->src;
+                            }
                             // 删除 STORE 指令
                             stm2_it = block2->instrs.erase(stm2_it);
+                        }
+                        else if (stm2->type == L_StmKind::T_STORE && stm2->u.STORE->src->kind == OperandKind::ICONST &&
+                                 stm2->u.STORE->ptr->u.TEMP == temp)
+                        {
+                            if (temp2ASoper.find(stm2->u.STORE->src->u.TEMP) != temp2ASoper.end())
+                            {
+                                temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = temp2ASoper[stm2->u.STORE->src->u.TEMP];
+                            }
+                            else
+                            {
+                                temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = stm2->u.STORE->src;
+                            }
+                            // STORE 替换为 MOVE
+                            auto move = L_Move(stm2->u.STORE->src, stm2->u.STORE->ptr);
+                            stm2_it = block2->instrs.erase(stm2_it);
+                            stm2_it = block2->instrs.insert(stm2_it, move);
                         }
                         else
                         {
@@ -166,6 +196,10 @@ void mem2reg(LLVMIR::L_func *fun)
                 {
                     for (auto stm2 : block2->instrs)
                     {
+                        if (stm2->type == L_StmKind::T_MOVE)
+                        {
+                            continue;
+                        }
                         auto AS_operand_list = get_all_AS_operand(stm2);
                         for (auto &AS_op : AS_operand_list)
                         {
@@ -185,9 +219,10 @@ void mem2reg(LLVMIR::L_func *fun)
     }
 }
 
+// Todo
 void Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
 {
-    //   Todo
+
 }
 
 void printf_domi()
