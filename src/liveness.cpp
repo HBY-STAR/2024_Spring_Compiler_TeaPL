@@ -390,6 +390,8 @@ static bool LivenessIteration(GRAPH::Node<LLVMIR::L_block *> *r, GRAPH::Graph<LL
         auto block = block_node.second->info;
         TempSet_ old_in = FG_In(block_node.second);
         TempSet_ old_out = FG_Out(block_node.second);
+
+        // in[n] = use[n] U (out[n] - def[n])
         TempSet_ new_in = FG_use(block_node.second);
         for (auto x : FG_Out(block_node.second))
         {
@@ -398,16 +400,16 @@ static bool LivenessIteration(GRAPH::Node<LLVMIR::L_block *> *r, GRAPH::Graph<LL
                 TempSet_add(&new_in, x);
             }
         }
-        for (auto pred : block_node.second->preds)
-        {
-            new_in = *(TempSet_union(&new_in, &FG_Out(bg.mynodes[pred])));
-        }
         FG_In(block_node.second) = new_in;
+
+        // out[n] = U (in[s]) s in succ[n]
         FG_Out(block_node.second) = TempSet_();
         for (auto succ : block_node.second->succs)
         {
             FG_Out(block_node.second) = *(TempSet_union(&FG_Out(block_node.second), &FG_In(bg.mynodes[succ])));
         }
+
+        // 检测是否有变化
         if (old_in != FG_In(block_node.second) || old_out != FG_Out(block_node.second))
         {
             changed = true;
