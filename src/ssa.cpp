@@ -55,12 +55,15 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
 
         auto RA_bg = Create_bg(fun->blocks);
 
-        Show_graph(stdout,RA_bg);
+        // Show_graph(stdout,RA_bg);
         SingleSourceGraph(RA_bg.mynodes[0], RA_bg, fun);
-        cout << endl;
-        Show_graph(stdout,RA_bg);
+        // cout << endl;
+        // Show_graph(stdout,RA_bg);
 
         Liveness(RA_bg.mynodes[0], RA_bg, fun->args);
+        Show_Liveness(stdout, RA_bg);
+        exit(0);
+
         Dominators(RA_bg);
         // printf_domi();
         tree_Dominators(RA_bg);
@@ -80,7 +83,7 @@ static bool is_mem_variable(L_stm *stm)
     return stm->type == L_StmKind::T_ALLOCA && stm->u.ALLOCA->dst->kind == OperandKind::TEMP && stm->u.ALLOCA->dst->u.TEMP->type == TempType::INT_PTR && stm->u.ALLOCA->dst->u.TEMP->len == 0;
 }
 
-// 保证相同的AS_operand,地址一样 。常量除外
+// 保证相同的AS_operand地址一样 。常量除外
 void combine_addr(LLVMIR::L_func *fun)
 {
     unordered_map<Temp_temp *, unordered_set<AS_operand **>> temp_set;
