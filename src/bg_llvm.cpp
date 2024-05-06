@@ -67,11 +67,39 @@ Graph<L_block*>& Create_bg(list<L_block*>& bl) {
 
 // maybe useful
 static void DFS(Node<L_block*>* r, Graph<L_block*>& bg) {
-
 }
 
+// done
 void SingleSourceGraph(Node<L_block*>* r, Graph<L_block*>& bg,L_func*fun) {
-    //   Todo
+    // 从 r 开始遍历图，为每个遍历过的节点着色
+
+    // 1. 初始化
+    for (auto node : *bg.nodes()) {
+        node.second->color = 0;
+    }
+
+    // 2. 遍历并着色
+    r->color = 1;
+    list<Node<L_block*>*> stack;
+    stack.push_back(r);
+    while (!stack.empty()) {
+        Node<L_block*>* node = stack.back();
+        stack.pop_back();
+        for (auto succ : node->succs) {
+            Node<L_block*>* node_succ = bg.mynodes[succ];
+            if (node_succ->color == 0) {
+                node_succ->color = 1;
+                stack.push_back(node_succ);
+            }
+        }
+    }
+
+    // 3. 删除未着色的节点
+    for (auto node : *bg.nodes()) {
+        if (node.second->color == 0) {
+            bg.rmNode(node.second);
+        }
+    }
 }
 
 void Show_graph(FILE* out,GRAPH::Graph<LLVMIR::L_block*>&bg){

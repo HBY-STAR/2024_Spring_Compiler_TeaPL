@@ -45,17 +45,21 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         init_table();
         combine_addr(fun);
 
-        std::ofstream debugStream;
-        debugStream.open("debug.ll");
-        printL_func(debugStream, fun);
+        // std::ofstream debugStream;
+        // debugStream.open("debug.ll");
+        // printL_func(debugStream, fun);
         mem2reg(fun);
-        printL_func(debugStream, fun);
-        debugStream.close();
-        exit(0);
+        // printL_func(debugStream, fun);
+        // debugStream.close();
+        // exit(0);
 
         auto RA_bg = Create_bg(fun->blocks);
+
+        Show_graph(stdout,RA_bg);
         SingleSourceGraph(RA_bg.mynodes[0], RA_bg, fun);
-        // Show_graph(stdout,RA_bg);
+        cout << endl;
+        Show_graph(stdout,RA_bg);
+
         Liveness(RA_bg.mynodes[0], RA_bg, fun->args);
         Dominators(RA_bg);
         // printf_domi();
@@ -222,7 +226,6 @@ void mem2reg(LLVMIR::L_func *fun)
 // Todo
 void Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
 {
-
 }
 
 void printf_domi()

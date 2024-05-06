@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "*.ll": "llvm",
-        "iosfwd": "cpp"
+        "iosfwd": "cpp",
+        "list": "cpp"
     }
 }
