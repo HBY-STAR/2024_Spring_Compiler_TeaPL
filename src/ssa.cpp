@@ -45,12 +45,12 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         init_table();
         combine_addr(fun);
 
-        // std::ofstream debugStream;
-        // debugStream.open("debug.ll");
+        std::ofstream debugStream;
+        debugStream.open("debug.ll");
         // printL_func(debugStream, fun);
         mem2reg(fun);
-        // printL_func(debugStream, fun);
-        // debugStream.close();
+        printL_func(debugStream, fun);
+        debugStream.close();
         // exit(0);
 
         auto RA_bg = Create_bg(fun->blocks);
@@ -58,7 +58,7 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         // Show_graph(stdout,RA_bg);
         SingleSourceGraph(RA_bg.mynodes[0], RA_bg, fun);
         // cout << endl;
-        // Show_graph(stdout,RA_bg);
+        Show_graph(stdout,RA_bg);
 
         Liveness(RA_bg.mynodes[0], RA_bg, fun->args);
         Show_Liveness(stdout, RA_bg);
