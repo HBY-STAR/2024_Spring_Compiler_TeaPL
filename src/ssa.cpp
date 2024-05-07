@@ -71,11 +71,13 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
 
         tree_Dominators(RA_bg);
         printf_D_tree();
-        exit(0);
+        // exit(0);
 
         // 默认0是入口block
         computeDF(RA_bg, RA_bg.mynodes[0]);
-        // printf_DF();
+        printf_DF();
+        exit(0);
+
         Place_phi_fu(RA_bg, fun);
         Rename(RA_bg);
         combine_addr(fun);
@@ -442,9 +444,81 @@ void tree_Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
     }
 }
 
+//   Todo
 void computeDF(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR::L_block *> *r)
 {
-    //   Todo
+    // 计算支配边界
+    // computeDF[n]=
+    // S={}
+    // for succ[n]中的每一个个结点y		这个循环计算DF_local[n]
+    // 	if idom(y)≠n
+    // 		S=SU{y}
+    // for必经结点树中的n 的每个儿子c
+    // 	computeDF[c]
+    // 	for DF[c]中的每个元素
+    // 		if n不是w的必经结点，或者if n==w
+    // 			S=SU{w}
+    // DF[n]=S
+
+    // 初始化
+    DF_array.clear();
+
+    // 计算支配边界
+
+    DF_array[r->nodeInfo()].clear();
+
+    // S={}
+    std::unordered_set<LLVMIR::L_block *> S;
+
+    // for succ[n]中的每一个个结点y		这个循环计算DF_local[n]
+    for (auto y : r->succs)
+    {
+        // if idom(y)≠n
+        if (tree_dominators[bg.mynodes[y]->nodeInfo()].pred != r->nodeInfo())
+        {
+            // S=SU{y}
+            S.insert(bg.mynodes[y]->nodeInfo());
+        }
+    }
+
+    // for必经结点树中的n 的每个儿子c
+    for (auto c : tree_dominators[r->nodeInfo()].succs)
+    {
+        // computeDF[c]
+        Node<LLVMIR::L_block *> *nodePtr = nullptr;
+        for (auto const &pair : bg.mynodes)
+        {
+            if (pair.second->nodeInfo() == c)
+            {
+                nodePtr = pair.second;
+                break;
+            }
+        }
+
+        if (nodePtr == nullptr)
+        {
+            printf("Error: computeDF\n");
+            exit(1);
+        }
+        else
+        {
+            computeDF(bg, nodePtr);
+        }
+
+        // for DF[c]中的每个元素
+        for (auto w : DF_array[c])
+        {
+            // if n不是w的必经结点，或者if n==w
+            if (dominators[r->nodeInfo()].find(w) == dominators[r->nodeInfo()].end() || r->nodeInfo() == w)
+            {
+                // S=SU{w}
+                S.insert(w);
+            }
+        }
+    }
+
+    // DF[n]=S
+    DF_array[r->nodeInfo()] = S;
 }
 
 // 只对标量做
