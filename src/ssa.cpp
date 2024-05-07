@@ -50,8 +50,7 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         debugStream.open("debug.ll");
         // printL_func(debugStream, fun);
         mem2reg(fun);
-        printL_func(debugStream, fun);
-        debugStream.close();
+
         // exit(0);
 
         auto RA_bg = Create_bg(fun->blocks);
@@ -76,11 +75,20 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         // 默认0是入口block
         computeDF(RA_bg, RA_bg.mynodes[0]);
         printf_DF();
-        exit(0);
+        // exit(0);
 
+        // printL_func(debugStream, fun);
         Place_phi_fu(RA_bg, fun);
+        printL_func(debugStream, fun);
+
         Rename(RA_bg);
+
         combine_addr(fun);
+
+        printL_func(debugStream, fun);
+
+        debugStream.close();
+        exit(0);
     }
     return prog;
 }
@@ -146,8 +154,10 @@ void mem2reg(LLVMIR::L_func *fun)
 
                 // 获取 ALLOCA 操作数
                 Temp_temp *temp = stm->u.ALLOCA->dst->u.TEMP;
-                // 删除 ALLOCA 指令
+                // ALLOCA 替换为 MOVE 0
+                auto move = L_Move(AS_Operand_Const(0), stm->u.ALLOCA->dst);
                 stm_it = block->instrs.erase(stm_it);
+                stm_it = block->instrs.insert(stm_it, move);
 
                 // 删除 LOAD 和 STORE 指令，并记录相关信息
                 for (auto block2_it = fun->blocks.begin(); block2_it != fun->blocks.end(); ++block2_it)
@@ -253,8 +263,6 @@ void Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
     // D[s0] = {s0}
     dominators[bg.mynodes[0]->nodeInfo()].clear();
     dominators[bg.mynodes[0]->nodeInfo()].insert(bg.mynodes[0]->nodeInfo());
-
-    printf_domi();
 
     // 迭代计算
     bool change = true;
@@ -524,7 +532,99 @@ void computeDF(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR::L_block 
 // 只对标量做
 void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
 {
-    //   Todo
+    // 插入phi函数
+    // for 每个节点 n
+    // 	for A_orig[n] 的每个变量 a
+    // 		defsites[a]=defsites[a]∪{n}
+    // for 每个变量 a
+    // 	worklist=defsites[a]
+    // 	while worklist!=∅
+    // 		n=worklist中的一个元素
+    // 		worklist=worklist-{n}
+    // 		for 每个 y∈DF[n]
+    // 			if a∉A_phi[y] && a在该节点live in
+    // 				在块y的顶端插入语句 a = phi(a,a,a,...,a) phi函数的参数个数等于y的前驱个数
+    // 				A_phi[y]=A_phi[y]∪{a}
+    // 				if a∉A_orig[y]
+    // 					worklist=worklist∪{y}
+
+    unordered_map<Temp_temp *, std::unordered_set<LLVMIR::L_block *>> defsites;
+    unordered_map<LLVMIR::L_block *, std::unordered_set<Temp_temp *>> A_phi;
+
+    // for 每个节点 n
+    for (auto x : bg.mynodes)
+    {
+        LLVMIR::L_block *n = x.second->nodeInfo();
+
+        // for A_orig[n] 的每个变量 a
+        for (auto a : FG_def(x.second))
+        {
+            // defsites[a]=defsites[a]∪{n}
+            defsites[a].insert(n);
+        }
+    }
+
+    // for 每个变量 a
+    for (auto a : defsites)
+    {
+        // worklist=defsites[a]
+        std::unordered_set<LLVMIR::L_block *> worklist = a.second;
+
+        // while worklist!=∅
+        while (!worklist.empty())
+        {
+            // n=worklist中的一个元素
+            LLVMIR::L_block *n = *worklist.begin();
+
+            // worklist=worklist-{n}
+            worklist.erase(n);
+
+            // for 每个 y∈DF[n]
+            for (auto y : DF_array[n])
+            {
+                Node<LLVMIR::L_block *> *nodePtr = nullptr;
+                for (auto const &pair : bg.mynodes)
+                {
+                    if (pair.second->nodeInfo() == y)
+                    {
+                        nodePtr = pair.second;
+                        break;
+                    }
+                }
+                if (nodePtr == nullptr)
+                {
+                    printf("Error: computeDF\n");
+                    exit(1);
+                }
+
+                // if a∉A_phi[y] 并且该变量在该节点live in
+                if (A_phi[y].find(a.first) == A_phi[y].end() && FG_In(nodePtr).find(a.first) != FG_In(nodePtr).end())
+                {
+                    // 在块y的顶端插入语句 a = phi(a,a,a,...,a) phi函数的参数个数等于y的前驱个数
+                    // L_stm* LLVMIR::L_Phi(AS_operand *dst,const std::vector<std::pair<AS_operand*,Temp_label*>> &phis)
+                    std::vector<std::pair<AS_operand *, Temp_label *>> phis;
+
+                    for (auto pred : nodePtr->preds)
+                    {
+                        phis.push_back(std::make_pair(AS_Operand_Temp(a.first), bg.mynodes[pred]->nodeInfo()->label));
+                    }
+
+                    L_stm *phi = L_Phi(AS_Operand_Temp(a.first), phis);
+                    y->instrs.insert(y->instrs.begin(), phi);
+
+                    // A_phi[y]=A_phi[y]∪{a}
+                    A_phi[y].insert(a.first);
+
+                    // if a∉A_orig[y]
+                    if (FG_def(nodePtr).find(a.first) == FG_def(nodePtr).end())
+                    {
+                        // worklist=worklist∪{y}
+                        worklist.insert(y);
+                    }
+                }
+            }
+        }
+    }
 }
 
 static list<AS_operand **> get_def_int_operand(LLVMIR::L_stm *stm)
@@ -532,7 +632,7 @@ static list<AS_operand **> get_def_int_operand(LLVMIR::L_stm *stm)
     list<AS_operand **> ret1 = get_def_operand(stm), ret2;
     for (auto AS_op : ret1)
     {
-        if ((**AS_op).u.TEMP->type == TempType::INT_TEMP)
+        if ((**AS_op).kind == OperandKind::TEMP && (**AS_op).u.TEMP && (**AS_op).u.TEMP->type == TempType::INT_TEMP)
         {
             ret2.push_back(AS_op);
         }
@@ -545,7 +645,7 @@ static list<AS_operand **> get_use_int_operand(LLVMIR::L_stm *stm)
     list<AS_operand **> ret1 = get_use_operand(stm), ret2;
     for (auto AS_op : ret1)
     {
-        if ((**AS_op).u.TEMP->type == TempType::INT_TEMP)
+        if ((**AS_op).kind == OperandKind::TEMP && (**AS_op).u.TEMP && (**AS_op).u.TEMP->type == TempType::INT_TEMP)
         {
             ret2.push_back(AS_op);
         }
@@ -553,12 +653,181 @@ static list<AS_operand **> get_use_int_operand(LLVMIR::L_stm *stm)
     return ret2;
 }
 
+// Rename
+// 初始化：
+//   for 每个变量 a
+//     stack[a]=空栈
+//     count[a]=0
+//     将 0 压入栈 stack[a]
+// Rename(n) =
+//   for 基本块n的每个语句S
+//     if S不是phi函数
+//       for S中某个变量x的每个使用
+//         i = top(stack[x])
+//         在S中用x_i替换x的每个使用
+//     for S中某个变量a的每个定义
+//       count[a] = count[a] + 1
+//       i = count[a]
+//       将 i 压入栈 stack[a]
+//       在S中用a_i替换a的每个定义
+//   for n的每个后继y
+//     设n是y的第j个前驱
+//     for y的每个phi函数
+//       设phi函数的第j个操作数是a
+//       i = top(stack[a])
+//       用a_i替换第j个操作数
+//   for n的每个儿子x
+//     Rename(x)
+//   for 原来的S中的某个变量a的每个定义
+//     从栈 stack[a] 中弹出栈顶元素
+
+// tests/public/BFS.tea tests/public/BFS.ll < tests/public/BFS.in
+
+// Rename(n)
 static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR::L_block *> *n, unordered_map<Temp_temp *, stack<Temp_temp *>> &Stack)
 {
-    //   Todo
+    // for 基本块n的每个语句S
+    for (auto stm : n->nodeInfo()->instrs)
+    {
+        // if S不是phi函数
+        if (stm->type != L_StmKind::T_PHI)
+        {
+            // printL_stm(cout, stm);
+            // for S中某个变量x的每个使用
+            for (auto x : get_use(stm))
+            {
+                // i = top(stack[x])
+                Temp_temp *i = (Stack[x]).top();
+
+                // 在S中用x_i替换x的每个使用
+                *x = *i;
+            }
+        }
+
+        // for S中某个变量a的每个定义
+        for (auto a : get_def(stm))
+        {
+            // count[a] = count[a] + 1
+            // i = count[a]
+            Temp_temp *i = Temp_newtemp_int();
+
+            // 将 i 压入栈 stack[a]
+            Stack[a].push(i);
+
+            // 在S中用a_i替换a的每个定义
+            *a = *i;
+        }
+    }
+
+    // for n的每个后继y
+    for (auto y : n->succs)
+    {
+        // 设n是y的第j个前驱
+        int j = 0;
+        for (auto pred : bg.mynodes[y]->preds)
+        {
+            if (bg.mynodes[pred]->nodeInfo()->label == n->nodeInfo()->label)
+            {
+                break;
+            }
+            ++j;
+        }
+
+        // for y的每个phi函数
+        for (auto stm : bg.mynodes[y]->nodeInfo()->instrs)
+        {
+            if (stm->type == L_StmKind::T_PHI)
+            {
+                // 设phi函数的第j个操作数是a
+                Temp_temp *a = stm->u.PHI->phis[j].first->u.TEMP;
+                if (a && Stack.find(a) != Stack.end() && !(Stack[a]).empty())
+                {
+                    // cout << "phi: " << a << endl;
+                    // i = top(stack[a])
+                    Temp_temp *i = (Stack[a]).top();
+
+                    // 用a_i替换第j个操作数
+                    stm->u.PHI->phis[j].first->u.TEMP = i;
+                }
+                else
+                {
+                    assert(0);
+                }
+            }
+        }
+    }
+
+    // for n的每个儿子x
+    for (auto x : tree_dominators[n->nodeInfo()].succs)
+    {
+        Node<LLVMIR::L_block *> *nodePtr = nullptr;
+        for (auto const &pair : bg.mynodes)
+        {
+            if (pair.second->nodeInfo() == x)
+            {
+                nodePtr = pair.second;
+                break;
+            }
+        }
+        if (nodePtr == nullptr)
+        {
+            printf("Error\n");
+            exit(1);
+        }
+
+        Rename_temp(bg, nodePtr, Stack);
+    }
+
+    // for 原来的S中的某个变量a的每个定义
+    for (auto stm : n->nodeInfo()->instrs)
+    {
+        for (auto temp : get_def(stm))
+        {
+            // 从栈 stack[a] 中弹出栈顶元素
+            Stack[temp].pop();
+        }
+    }
 }
 
+// Rename
 void Rename(GRAPH::Graph<LLVMIR::L_block *> &bg)
 {
-    //   Todo
+    // 初始化：
+    // for 每个变量 a
+    //   stack[a]=空栈
+    //   count[a]=0
+    //   将 0 压入栈 stack[a]
+
+    unordered_map<Temp_temp *, stack<Temp_temp *>> Stack;
+
+    for (auto x : bg.mynodes)
+    {
+        LLVMIR::L_block *n = x.second->nodeInfo();
+
+        // for 每个变量 a
+        for (auto a : n->instrs)
+        {
+            // stack[a]=空栈
+            // count[a]=0
+            // 将 0 压入栈 stack[a]
+            for (auto x : get_all_AS_operand(a))
+            {
+                if ((*x)->kind == OperandKind::TEMP && (*x)->u.TEMP && (*x)->u.TEMP->type == TempType::INT_TEMP)
+                {
+                    Temp_temp *b = (*x)->u.TEMP;
+                    if (Stack.find(b) == Stack.end())
+                    {
+                        Temp_temp *temp = Temp_newtemp_int();
+                        std::stack s = stack<Temp_temp *>();
+                        s.push(temp);
+                        Stack.insert({b, s});
+                    }
+                }
+            }
+        }
+    }
+    // cout << "Stack Size:" << Stack.size() << endl;
+
+    // Rename(n)
+    Rename_temp(bg, bg.mynodes[0], Stack);
 }
