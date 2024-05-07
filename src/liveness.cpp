@@ -127,7 +127,7 @@ list<AS_operand **> get_all_AS_operand(L_stm *stm)
     return AS_operand_list;
 }
 
-//   Todo
+//   done
 std::list<AS_operand **> get_def_operand(L_stm *stm)
 {
     list<AS_operand **> AS_operand_list;
@@ -218,7 +218,7 @@ list<Temp_temp *> get_def(L_stm *stm)
     return Temp_list;
 }
 
-//   Todo
+//   done
 std::list<AS_operand **> get_use_operand(L_stm *stm)
 {
     list<AS_operand **> AS_operand_list;
@@ -348,7 +348,7 @@ TempSet_ &FG_use(GRAPH::Node<LLVMIR::L_block *> *r)
     return UseDefTable[r].use;
 }
 
-// Todo
+// done
 static void Use_def(GRAPH::Node<LLVMIR::L_block *> *r, GRAPH::Graph<LLVMIR::L_block *> &bg, std::vector<Temp_temp *> &args)
 {
     // 处理参数，函数参数视为第一个block的def

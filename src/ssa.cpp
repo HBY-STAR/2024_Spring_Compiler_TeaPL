@@ -67,10 +67,12 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
 
         Dominators(RA_bg);
         printf_domi();
-        exit(0);
+        // exit(0);
 
         tree_Dominators(RA_bg);
-        // printf_D_tree();
+        printf_D_tree();
+        exit(0);
+
         // 默认0是入口block
         computeDF(RA_bg, RA_bg.mynodes[0]);
         // printf_DF();
@@ -229,7 +231,7 @@ void mem2reg(LLVMIR::L_func *fun)
     }
 }
 
-// Todo
+// done
 void Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
 {
     // D[s0] = {s0}
@@ -271,7 +273,7 @@ void Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
             bool first_flag = true;
             for (auto p : x.second->preds)
             {
-                if(first_flag)
+                if (first_flag)
                 {
                     first_flag = false;
                     new_dominators = dominators[bg.mynodes[p]->nodeInfo()];
@@ -367,6 +369,7 @@ void printf_D_tree()
         printf("\n\n");
     }
 }
+
 void printf_DF()
 {
     printf("DF:\n");
@@ -381,9 +384,62 @@ void printf_DF()
     }
 }
 
+//   Todo
 void tree_Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
 {
-    //   Todo
+    // 由支配节点集合构造支配树
+    // idom(n) != n && idom(n) in dom(n) && idom(n) not in dom(dom(n))
+
+    // 初始化
+    tree_dominators.clear();
+
+    // 计算支配树
+    for (auto x : bg.mynodes)
+    {
+        LLVMIR::L_block *idom = nullptr;
+
+        // 根节点
+        if (x.first == 0)
+        {
+            continue;
+        }
+
+        for (auto y : dominators[x.second->nodeInfo()])
+        {
+            // idom(n) != n && idom(n) in dom(n)
+            if (y == x.second->nodeInfo())
+            {
+                continue;
+            }
+
+            // idom(n) not in dom(dom(n))
+            bool flag1 = false;
+            for (auto z : dominators[x.second->nodeInfo()])
+            {
+                if (z == y)
+                {
+                    continue;
+                }
+                if (dominators[y].find(z) == dominators[y].end())
+                {
+                    flag1 = true;
+                    break;
+                }
+            }
+
+            if (flag1)
+            {
+                idom = y;
+                break;
+            }
+        }
+
+        if (idom != nullptr)
+        {
+            tree_dominators[x.second->nodeInfo()].pred = idom;
+            tree_dominators[idom].succs.insert(x.second->nodeInfo());
+        }
+    }
 }
 
 void computeDF(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR::L_block *> *r)
