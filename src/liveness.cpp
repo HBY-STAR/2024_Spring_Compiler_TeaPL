@@ -371,7 +371,8 @@ static void Use_def(GRAPH::Node<LLVMIR::L_block *> *r, GRAPH::Graph<LLVMIR::L_bl
             }
             for (auto u : use)
             {
-                TempSet_add(&UseDefTable[block_node.second].use, u);
+                if (UseDefTable[block_node.second].def.find(u) == UseDefTable[block_node.second].def.end())
+                    TempSet_add(&UseDefTable[block_node.second].use, u);
             }
         }
     }

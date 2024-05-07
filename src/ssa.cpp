@@ -229,6 +229,14 @@ void mem2reg(LLVMIR::L_func *fun)
 // Todo
 void Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
 {
+    // 计算支配节点
+
+    // 初始化
+    for (auto x : bg.mynodes)
+    {
+        dominators[x.second->nodeInfo()] = unordered_set<L_block *>();
+    }
+    
 }
 
 void printf_domi()
