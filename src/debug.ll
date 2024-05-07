@@ -69,69 +69,69 @@ bb15:
 
 define i32 @quickread( ) {
 bb1:
-  %r264 = add i32 0, 0
-  %r265 = add i32 0, 0
-  %r266 = add i32 0, 0
-  %r281 = call i32 @getch()
-  %r269 = add i32 0, 0
-  %r269 = add i32 0, 0
+  %r275 = add i32 0, 0
+  %r276 = add i32 0, 0
+  %r277 = add i32 0, 0
+  %r306 = call i32 @getch()
   %r280 = add i32 0, 0
   %r280 = add i32 0, 0
+  %r299 = add i32 0, 0
+  %r299 = add i32 0, 0
   br label %bb2
 
 bb2:
-  %r281 = phi i32 [ %r267, %bb1 ], [ %r283, %bb8 ]
-  %r282 = icmp slt i32 %r281, 48
-  br i1 %r282, label %bb3, label %bb5
+  %r300 = phi i32 [ %r278, %bb1 ], [ %r300, %bb8 ]
+  %r303 = icmp slt i32 %r306, 48
+  br i1 %r303, label %bb3, label %bb5
 
 bb5:
-  %r285 = icmp sgt i32 %r281, 57
-  br i1 %r285, label %bb3, label %bb4
+  %r308 = icmp sgt i32 %r306, 57
+  br i1 %r308, label %bb3, label %bb4
 
 bb3:
-  %r281 = phi i32 [ %r281, %bb2 ], [ %r281, %bb5 ]
-  %r279 = icmp eq i32 %r281, 45
-  br i1 %r279, label %bb6, label %bb7
+  %r295 = phi i32 [ %r295, %bb2 ], [ %r295, %bb5 ]
+  %r298 = icmp eq i32 %r306, 45
+  br i1 %r298, label %bb6, label %bb7
 
 bb6:
-  %r280 = add i32 1, 0
+  %r299 = add i32 1, 0
   br label %bb8
 
 bb7:
   br label %bb8
 
 bb8:
-  %r281 = phi i32 [ %r278, %bb6 ], [ %r278, %bb7 ]
-  %r284 = call i32 @getch()
+  %r304 = phi i32 [ %r295, %bb6 ], [ %r295, %bb7 ]
+  %r305 = call i32 @getch()
   br label %bb2
 
 bb4:
   br label %bb9
 
 bb9:
-  %r272 = icmp sge i32 %r284, 48
-  br i1 %r272, label %bb12, label %bb11
+  %r284 = icmp sge i32 %r305, 48
+  br i1 %r284, label %bb12, label %bb11
 
 bb12:
-  %r273 = icmp sle i32 %r284, 57
-  br i1 %r273, label %bb10, label %bb11
+  %r287 = icmp sle i32 %r305, 57
+  br i1 %r287, label %bb10, label %bb11
 
 bb10:
-  %r274 = mul i32 0, 10
-  %r275 = add i32 %r274, %r284
-  %r261 = sub i32 %r275, 48
-  %r277 = call i32 @getch()
+  %r289 = mul i32 0, 10
+  %r292 = add i32 %r289, %r305
+  %r312 = sub i32 %r292, 48
+  %r294 = call i32 @getch()
   br label %bb9
 
 bb11:
-  %r286 = icmp ne i32 1, 0
-  br i1 %r286, label %bb13, label %bb14
+  %r310 = icmp ne i32 1, 0
+  br i1 %r310, label %bb13, label %bb14
 
 bb13:
-  %r287 = sub i32 0, %r261
-  ret i32 %r287
+  %r314 = sub i32 0, %r312
+  ret i32 %r314
 bb14:
-  ret i32 %r261
+  ret i32 %r312
 bb15:
   ret void
 }

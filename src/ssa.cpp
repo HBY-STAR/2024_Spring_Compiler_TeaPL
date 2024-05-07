@@ -80,7 +80,7 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         // printL_func(debugStream, fun);
         Place_phi_fu(RA_bg, fun);
         printL_func(debugStream, fun);
-
+        // debugStream.close();
         Rename(RA_bg);
 
         combine_addr(fun);
@@ -683,8 +683,19 @@ static list<AS_operand **> get_use_int_operand(LLVMIR::L_stm *stm)
 
 // tests/public/BFS.tea tests/public/BFS.ll < tests/public/BFS.in
 
+void ReplaceStm(Temp_temp *old, Temp_temp *new_temp, L_stm *stm)
+{
+    for (auto AS_op : get_all_AS_operand(stm))
+    {
+        if ((*AS_op)->kind == OperandKind::TEMP && (*AS_op)->u.TEMP == old)
+        {
+            (*AS_op)->u.TEMP = new Temp_temp(*new_temp);
+        }
+    }
+}
+
 // Rename(n)
-static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR::L_block *> *n, unordered_map<Temp_temp *, stack<Temp_temp *>> &Stack)
+static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR::L_block *> *n, unordered_map<int, stack<Temp_temp *> *> &Stack)
 {
     // for 基本块n的每个语句S
     for (auto stm : n->nodeInfo()->instrs)
@@ -697,10 +708,15 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
             for (auto x : get_use(stm))
             {
                 // i = top(stack[x])
-                Temp_temp *i = (Stack[x]).top();
+                if (Stack.find(x->num) == Stack.end())
+                {
+                    Stack[x->num] = new stack<Temp_temp *>();
+                    Stack[x->num]->push(Temp_newtemp_int());
+                }
+                Temp_temp *i = Stack[x->num]->top();
 
                 // 在S中用x_i替换x的每个使用
-                *x = *i;
+                ReplaceStm(x, i, stm);
             }
         }
 
@@ -712,10 +728,15 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
             Temp_temp *i = Temp_newtemp_int();
 
             // 将 i 压入栈 stack[a]
-            Stack[a].push(i);
+            cout << "search: " << a->num << endl;
+            if (Stack.find(a->num) == Stack.end())
+            {
+                Stack[a->num] = new stack<Temp_temp *>();
+            }
+            Stack[a->num]->push(i);
 
             // 在S中用a_i替换a的每个定义
-            *a = *i;
+            ReplaceStm(a, i, stm);
         }
     }
 
@@ -740,18 +761,18 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
             {
                 // 设phi函数的第j个操作数是a
                 Temp_temp *a = stm->u.PHI->phis[j].first->u.TEMP;
-                if (a && Stack.find(a) != Stack.end() && !(Stack[a]).empty())
+                if (a && Stack.find(a->num) != Stack.end() && !(Stack[a->num])->empty())
                 {
                     // cout << "phi: " << a << endl;
                     // i = top(stack[a])
-                    Temp_temp *i = (Stack[a]).top();
+                    Temp_temp *i = (Stack[a->num])->top();
 
                     // 用a_i替换第j个操作数
                     stm->u.PHI->phis[j].first->u.TEMP = i;
                 }
                 else
                 {
-                    assert(0);
+                    continue;
                 }
             }
         }
@@ -784,7 +805,11 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
         for (auto temp : get_def(stm))
         {
             // 从栈 stack[a] 中弹出栈顶元素
-            Stack[temp].pop();
+            if (Stack.find(temp->num) == Stack.end())
+            {
+                continue;
+            }
+            Stack[temp->num]->pop();
         }
     }
 }
@@ -798,7 +823,7 @@ void Rename(GRAPH::Graph<LLVMIR::L_block *> &bg)
     //   count[a]=0
     //   将 0 压入栈 stack[a]
 
-    unordered_map<Temp_temp *, stack<Temp_temp *>> Stack;
+    unordered_map<int, stack<Temp_temp *> *> Stack;
 
     for (auto x : bg.mynodes)
     {
@@ -812,15 +837,16 @@ void Rename(GRAPH::Graph<LLVMIR::L_block *> &bg)
             // 将 0 压入栈 stack[a]
             for (auto x : get_all_AS_operand(a))
             {
-                if ((*x)->kind == OperandKind::TEMP && (*x)->u.TEMP && (*x)->u.TEMP->type == TempType::INT_TEMP)
+                if ((*x)->kind == OperandKind::TEMP && ((*x)->u.TEMP->type == TempType::INT_TEMP || ((*x)->u.TEMP->type == TempType::INT_PTR && (*x)->u.TEMP->len == 0)))
                 {
                     Temp_temp *b = (*x)->u.TEMP;
-                    if (Stack.find(b) == Stack.end())
+                    if (Stack.find(b->num) == Stack.end())
                     {
                         Temp_temp *temp = Temp_newtemp_int();
-                        std::stack s = stack<Temp_temp *>();
-                        s.push(temp);
-                        Stack.insert({b, s});
+                        std::stack<Temp_temp *> *s = new std::stack<Temp_temp *>();
+                        s->push(temp);
+                        Stack.insert({b->num, s});
+                        cout << "init: " << b->num << endl;
                     }
                 }
             }
