@@ -1120,7 +1120,7 @@ AS_operand *ast2llvmRightVal(aA_rightVal r)
         Temp_label *true_label = Temp_newlabel();
         Temp_label *false_label = Temp_newlabel();
         Temp_label *end_label = Temp_newlabel();
-        Temp_temp* temp = Temp_newtemp_int();
+        Temp_temp *temp = Temp_newtemp_int();
         AS_operand *res = ast2llvmBoolExpr(r->u.boolExpr, true_label, false_label);
 
         emit_irs.push_back(L_Label(true_label));
@@ -1130,7 +1130,7 @@ AS_operand *ast2llvmRightVal(aA_rightVal r)
         emit_irs.push_back(L_Label(false_label));
         emit_irs.push_back(L_Store(AS_Operand_Const(0), res));
         emit_irs.push_back(L_Jump(end_label));
-        
+
         emit_irs.push_back(L_Label(end_label));
         emit_irs.push_back(L_Load(AS_Operand_Temp(temp), res));
         return AS_Operand_Temp(temp);
@@ -1225,7 +1225,7 @@ AS_operand *ast2llvmBoolBiOpExpr(aA_boolBiOpExpr b, Temp_label *true_label, Temp
 
         emit_irs.push_back(L_Label(l_true));
         AS_operand *r_res = ast2llvmBoolExpr(b->right, true_label, false_label);
-        
+
         // Temp_temp *r_i32 = Temp_newtemp_int();
         // emit_irs.push_back(L_Zext(r_res, AS_Operand_Temp(r_i32)));
         // emit_irs.push_back(L_Store(AS_Operand_Temp(r_i32), res));
@@ -1252,7 +1252,7 @@ AS_operand *ast2llvmBoolBiOpExpr(aA_boolBiOpExpr b, Temp_label *true_label, Temp
 
         emit_irs.push_back(L_Label(l_false));
         AS_operand *r_res = ast2llvmBoolExpr(b->right, true_label, false_label);
-        
+
         // Temp_temp *r_i32 = Temp_newtemp_int();
         // emit_irs.push_back(L_Zext(r_res, AS_Operand_Temp(r_i32)));
         // emit_irs.push_back(L_Store(AS_Operand_Temp(r_i32), res));
@@ -1913,8 +1913,15 @@ LLVMIR::L_func *ast2llvmFuncBlock(Func_local *f)
     }
     if (blocks.back()->instrs.empty() || (blocks.back()->instrs.back()->type != L_StmKind::T_RETURN))
     {
-        blocks.back()->instrs.push_back(L_Ret(nullptr));
+        if (f->ret.type == ReturnType::VOID_TYPE)
+            blocks.back()->instrs.push_back(L_Ret(nullptr));
+        else if (f->ret.type == ReturnType::INT_TYPE)
+            blocks.back()->instrs.push_back(L_Ret(AS_Operand_Const(0)));
     }
+    // if (blocks.back()->instrs.empty() || (blocks.back()->instrs.back()->type != L_StmKind::T_RETURN))
+    // {
+    //     blocks.pop_back();
+    // }
     return new L_func(f->name, f->ret, f->args, blocks);
 }
 
