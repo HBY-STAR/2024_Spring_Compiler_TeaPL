@@ -46,8 +46,8 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         init_table();
         combine_addr(fun);
 
-        // std::ofstream debugStream;
-        // debugStream.open("debug.ll");
+        std::ofstream debugStream;
+        debugStream.open("debug.ll");
         //  printL_func(debugStream, fun);
         mem2reg(fun);
 
@@ -64,27 +64,27 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         // printL_func(debugStream, fun);
 
         Liveness(RA_bg.mynodes[0], RA_bg, fun->args);
-        // Show_Liveness(stdout, RA_bg);
+        Show_Liveness(stdout, RA_bg);
         //  exit(0);
 
         // checked
         Dominators(RA_bg);
-        // printf_domi();
+        printf_domi();
         //  exit(0);
 
         // checked
         tree_Dominators(RA_bg);
-        // printf_D_tree();
+        printf_D_tree();
         //  exit(0);
 
         // checked
         // 默认0是入口block
         computeDF(RA_bg, RA_bg.mynodes[0]);
-        // printf_DF();
+        printf_DF();
         //  debugStream.close();
         //  exit(0);
 
-        // printL_func(debugStream, fun);
+        printL_func(debugStream, fun);
         Place_phi_fu(RA_bg, fun);
         // printL_func(debugStream, fun);
         // debugStream.close();
@@ -92,10 +92,10 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
 
         combine_addr(fun);
 
-        // printL_func(cout, fun);
+        printL_func(debugStream, fun);
 
-        // debugStream.close();
-        // exit(0);
+        debugStream.close();
+        exit(1);
     }
     return prog;
 }
@@ -575,15 +575,15 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
             defsites[a].insert(n);
         }
     }
-    for (auto arg : fun->args)
-    {
-        defsites[arg].insert(bg.mynodes[0]->nodeInfo());
-    }
+    // for (auto arg : fun->args)
+    // {
+    //     defsites[arg].insert(bg.mynodes[0]->nodeInfo());
+    // }
 
     // for 每个变量 a
     for (auto a : defsites)
     {
-        // cout << "a: " << a.first->num << endl;
+        cout << "a: " << a.first->num << endl;
         //  worklist=defsites[a]
         std::unordered_set<LLVMIR::L_block *> worklist = a.second;
 
@@ -593,7 +593,7 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
             // n=worklist中的一个元素
             LLVMIR::L_block *n = *worklist.begin();
 
-            // cout << "   n: " << n->label->name << endl;
+            cout << "   n: " << n->label->name << endl;
 
             // worklist=worklist-{n}
             worklist.erase(n);
