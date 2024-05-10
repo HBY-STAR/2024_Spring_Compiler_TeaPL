@@ -67,19 +67,22 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         Show_Liveness(stdout, RA_bg);
         // exit(0);
 
+        // checked
         Dominators(RA_bg);
         printf_domi();
         // exit(0);
 
+        // checked
         tree_Dominators(RA_bg);
         printf_D_tree();
         // exit(0);
 
+        // checked
         // 默认0是入口block
         computeDF(RA_bg, RA_bg.mynodes[0]);
         printf_DF();
-        debugStream.close();
-        exit(0);
+        //debugStream.close();
+        //exit(0);
 
         // printL_func(debugStream, fun);
         Place_phi_fu(RA_bg, fun);
@@ -172,27 +175,27 @@ void mem2reg(LLVMIR::L_func *fun)
                         auto stm2 = *stm2_it;
                         if (stm2->type == L_StmKind::T_LOAD && stm2->u.LOAD->dst->kind == OperandKind::TEMP && stm2->u.LOAD->ptr->u.TEMP == temp)
                         {
-                            if (temp2ASoper.find(stm2->u.LOAD->ptr->u.TEMP) != temp2ASoper.end())
-                            {
-                                temp2ASoper[stm2->u.LOAD->dst->u.TEMP] = temp2ASoper[stm2->u.LOAD->ptr->u.TEMP];
-                            }
-                            else
-                            {
+                            // if (temp2ASoper.find(stm2->u.LOAD->ptr->u.TEMP) != temp2ASoper.end())
+                            // {
+                            //     temp2ASoper[stm2->u.LOAD->dst->u.TEMP] = temp2ASoper[stm2->u.LOAD->ptr->u.TEMP];
+                            // }
+                            // else
+                            // {
                                 temp2ASoper[stm2->u.LOAD->dst->u.TEMP] = stm2->u.LOAD->ptr;
-                            }
+                            // }
                             // 删除 LOAD 指令
                             stm2_it = block2->instrs.erase(stm2_it);
                         }
                         else if (stm2->type == L_StmKind::T_STORE && stm2->u.STORE->src->kind == OperandKind::TEMP && stm2->u.STORE->ptr->u.TEMP == temp)
                         {
-                            if (temp2ASoper.find(stm2->u.STORE->src->u.TEMP) != temp2ASoper.end())
-                            {
-                                temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = temp2ASoper[stm2->u.STORE->src->u.TEMP];
-                            }
-                            else
-                            {
+                            // if (temp2ASoper.find(stm2->u.STORE->src->u.TEMP) != temp2ASoper.end())
+                            // {
+                            //     temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = temp2ASoper[stm2->u.STORE->src->u.TEMP];
+                            // }
+                            // else
+                            // {
                                 temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = stm2->u.STORE->src;
-                            }
+                            // }
                             // 删除 STORE 指令
                             stm2_it = block2->instrs.erase(stm2_it);
                         }
