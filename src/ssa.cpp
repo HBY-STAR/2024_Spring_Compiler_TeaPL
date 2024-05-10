@@ -48,20 +48,23 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
 
         std::ofstream debugStream;
         debugStream.open("debug.ll");
-        // printL_func(debugStream, fun);
+        printL_func(debugStream, fun);
         mem2reg(fun);
 
         // exit(0);
 
         auto RA_bg = Create_bg(fun->blocks);
 
+        // checked
         // Show_graph(stdout,RA_bg);
         SingleSourceGraph(RA_bg.mynodes[0], RA_bg, fun);
         // cout << endl;
         Show_graph(stdout, RA_bg);
 
+        printL_func(debugStream, fun);
+
         Liveness(RA_bg.mynodes[0], RA_bg, fun->args);
-        // Show_Liveness(stdout, RA_bg);
+        Show_Liveness(stdout, RA_bg);
         // exit(0);
 
         Dominators(RA_bg);
@@ -75,7 +78,8 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         // 默认0是入口block
         computeDF(RA_bg, RA_bg.mynodes[0]);
         printf_DF();
-        // exit(0);
+        debugStream.close();
+        exit(0);
 
         // printL_func(debugStream, fun);
         Place_phi_fu(RA_bg, fun);
@@ -195,14 +199,14 @@ void mem2reg(LLVMIR::L_func *fun)
                         else if (stm2->type == L_StmKind::T_STORE && stm2->u.STORE->src->kind == OperandKind::ICONST &&
                                  stm2->u.STORE->ptr->u.TEMP == temp)
                         {
-                            if (temp2ASoper.find(stm2->u.STORE->src->u.TEMP) != temp2ASoper.end())
-                            {
-                                temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = temp2ASoper[stm2->u.STORE->src->u.TEMP];
-                            }
-                            else
-                            {
-                                temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = stm2->u.STORE->src;
-                            }
+                            // if (temp2ASoper.find(stm2->u.STORE->src->u.TEMP) != temp2ASoper.end())
+                            // {
+                            //     temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = temp2ASoper[stm2->u.STORE->src->u.TEMP];
+                            // }
+                            // else
+                            // {
+                            //     temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = stm2->u.STORE->src;
+                            // }
                             // STORE 替换为 MOVE
                             auto move = L_Move(stm2->u.STORE->src, stm2->u.STORE->ptr);
                             stm2_it = block2->instrs.erase(stm2_it);
@@ -372,6 +376,9 @@ void printf_D_tree()
     for (auto x : tree_dominators)
     {
         printf("%s :\n", x.first->label->name.c_str());
+        if (x.second.pred)
+            printf("%s ", x.second.pred->label->name.c_str());
+        printf("\n");
         for (auto t : x.second.succs)
         {
             printf("%s ", t->label->name.c_str());
@@ -411,6 +418,7 @@ void tree_Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
         // 根节点
         if (x.first == 0)
         {
+            tree_dominators[x.second->nodeInfo()].pred = nullptr;
             continue;
         }
 
@@ -446,6 +454,7 @@ void tree_Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
 
         if (idom != nullptr)
         {
+            cout << x.second->nodeInfo()->label->name << " " << idom->label->name << endl;
             tree_dominators[x.second->nodeInfo()].pred = idom;
             tree_dominators[idom].succs.insert(x.second->nodeInfo());
         }
@@ -468,23 +477,20 @@ void computeDF(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR::L_block 
     // 			S=SU{w}
     // DF[n]=S
 
-    // 初始化
-    DF_array.clear();
-
-    // 计算支配边界
-
-    DF_array[r->nodeInfo()].clear();
-
     // S={}
     std::unordered_set<LLVMIR::L_block *> S;
+
+    // cout << "node: " << r->info->label->name << endl;
 
     // for succ[n]中的每一个个结点y		这个循环计算DF_local[n]
     for (auto y : r->succs)
     {
         // if idom(y)≠n
-        if (tree_dominators[bg.mynodes[y]->nodeInfo()].pred != r->nodeInfo())
+        if (tree_dominators[bg.mynodes[y]->nodeInfo()].pred && tree_dominators[bg.mynodes[y]->nodeInfo()].pred != r->nodeInfo())
         {
             // S=SU{y}
+            // cout << "x: " << r->nodeInfo()->label->name << endl;
+            // cout << "y: " << bg.mynodes[y]->nodeInfo()->label->name << endl;
             S.insert(bg.mynodes[y]->nodeInfo());
         }
     }
@@ -517,7 +523,7 @@ void computeDF(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR::L_block 
         for (auto w : DF_array[c])
         {
             // if n不是w的必经结点，或者if n==w
-            if (dominators[r->nodeInfo()].find(w) == dominators[r->nodeInfo()].end() || r->nodeInfo() == w)
+            if (dominators[w].find(r->nodeInfo()) == dominators[w].end() || r->nodeInfo() == w)
             {
                 // S=SU{w}
                 S.insert(w);
@@ -593,7 +599,7 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
                 }
                 if (nodePtr == nullptr)
                 {
-                    printf("Error: computeDF\n");
+                    printf("Error\n");
                     exit(1);
                 }
 
@@ -618,7 +624,8 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
                     // if a∉A_orig[y]
                     if (FG_def(nodePtr).find(a.first) == FG_def(nodePtr).end())
                     {
-                        // worklist=worklist∪{y}
+                        // cout << "insert: " << a.first->num << " " << y->label->name << endl;
+                        //  worklist=worklist∪{y}
                         worklist.insert(y);
                     }
                 }
@@ -759,6 +766,8 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
         {
             if (stm->type == L_StmKind::T_PHI)
             {
+                cout << "start" << endl;
+                printL_stm(cout, stm);
                 // 设phi函数的第j个操作数是a
                 Temp_temp *a = stm->u.PHI->phis[j].first->u.TEMP;
                 if (a && Stack.find(a->num) != Stack.end() && !(Stack[a->num])->empty())
@@ -774,6 +783,8 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
                 {
                     continue;
                 }
+                printL_stm(cout, stm);
+                cout << "end" << endl;
             }
         }
     }

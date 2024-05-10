@@ -115,6 +115,10 @@ void SingleSourceGraph(Node<L_block *> *r, Graph<L_block *> &bg, L_func *fun)
     {
         if (it->second->color == 0)
         {
+            // 删除 func 中的block
+            fun->blocks.remove(it->second->info);
+
+            // 删除 bg 中的节点
             it = bg.nodes()->erase(it);
         }
         else

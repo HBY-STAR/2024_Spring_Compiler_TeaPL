@@ -459,6 +459,7 @@ void Show_Liveness(FILE *out, GRAPH::Graph<LLVMIR::L_block *> &bg)
 void Liveness(GRAPH::Node<LLVMIR::L_block *> *r, GRAPH::Graph<LLVMIR::L_block *> &bg, std::vector<Temp_temp *> &args)
 {
     init_INOUT();
+    // checked
     Use_def(r, bg, args);
     gi = 0;
     bool changed = true;
