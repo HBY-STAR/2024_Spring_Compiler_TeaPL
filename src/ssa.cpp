@@ -382,9 +382,9 @@ void printf_D_tree()
     for (auto x : tree_dominators)
     {
         printf("%s :\n", x.first->label->name.c_str());
-        if (x.second.pred)
-            printf("%s ", x.second.pred->label->name.c_str());
-        printf("\n");
+        // if (x.second.pred)
+        //     printf("%s ", x.second.pred->label->name.c_str());
+        // printf("\n");
         for (auto t : x.second.succs)
         {
             printf("%s ", t->label->name.c_str());
@@ -398,7 +398,7 @@ void printf_DF()
     printf("DF:\n");
     for (auto x : DF_array)
     {
-        printf("%s :\n", x.first->label->name.c_str());
+        //printf("%s :\n", x.first->label->name.c_str());
         for (auto t : x.second)
         {
             printf("%s ", t->label->name.c_str());
