@@ -88,7 +88,7 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         Place_phi_fu(RA_bg, fun);
         // printL_func(debugStream, fun);
         // debugStream.close();
-        Rename(RA_bg);
+        Rename(RA_bg,fun);
 
         combine_addr(fun);
 
@@ -575,12 +575,16 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
             defsites[a].insert(n);
         }
     }
+    for (auto arg : fun->args)
+    {
+        defsites[arg].insert(bg.mynodes[0]->nodeInfo());
+    }
 
     // for 每个变量 a
     for (auto a : defsites)
     {
-        //cout << "a: " << a.first->num << endl;
-        // worklist=defsites[a]
+        // cout << "a: " << a.first->num << endl;
+        //  worklist=defsites[a]
         std::unordered_set<LLVMIR::L_block *> worklist = a.second;
 
         // while worklist!=∅
@@ -589,7 +593,7 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
             // n=worklist中的一个元素
             LLVMIR::L_block *n = *worklist.begin();
 
-            //cout << "   n: " << n->label->name << endl;
+            // cout << "   n: " << n->label->name << endl;
 
             // worklist=worklist-{n}
             worklist.erase(n);
@@ -612,7 +616,7 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
                     exit(1);
                 }
 
-                //cout << "       y: " << y->label->name << endl;
+                // cout << "       y: " << y->label->name << endl;
 
                 // if a∉A_phi[y] 并且该变量在该节点live in
                 if (A_phi[y].find(a.first) == A_phi[y].end() && FG_In(nodePtr).find(a.first) != FG_In(nodePtr).end())
@@ -848,7 +852,7 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
 }
 
 // Rename
-void Rename(GRAPH::Graph<LLVMIR::L_block *> &bg)
+void Rename(GRAPH::Graph<LLVMIR::L_block *> &bg, LLVMIR:: L_func*fun)
 {
     // 初始化：
     // for 每个变量 a
@@ -861,6 +865,18 @@ void Rename(GRAPH::Graph<LLVMIR::L_block *> &bg)
     for (auto x : bg.mynodes)
     {
         LLVMIR::L_block *n = x.second->nodeInfo();
+
+        // 处理参数
+        for(auto arg:fun->args)
+        {
+            if (Stack.find(arg->num) == Stack.end())
+            {
+                std::stack<Temp_temp *> *s = new std::stack<Temp_temp *>();
+                s->push(arg);
+                Stack.insert({arg->num, s});
+                // cout << "init: " << arg->num << "-> " << temp->num << endl;
+            }
+        }
 
         // for 每个变量 a
         for (auto a : n->instrs)
@@ -879,7 +895,7 @@ void Rename(GRAPH::Graph<LLVMIR::L_block *> &bg)
                         std::stack<Temp_temp *> *s = new std::stack<Temp_temp *>();
                         s->push(temp);
                         Stack.insert({b->num, s});
-                        //cout << "init: " << b->num << "-> " << temp->num << endl;
+                        // cout << "init: " << b->num << "-> " << temp->num << endl;
                     }
                 }
             }
