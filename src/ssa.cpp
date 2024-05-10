@@ -197,7 +197,10 @@ void mem2reg(LLVMIR::L_func *fun)
                                 temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = stm2->u.STORE->src;
                             // }
                             // 删除 STORE 指令
+                            // stm2_it = block2->instrs.erase(stm2_it);
+                            auto move = L_Move(stm2->u.STORE->src, stm2->u.STORE->ptr);
                             stm2_it = block2->instrs.erase(stm2_it);
+                            stm2_it = block2->instrs.insert(stm2_it, move);
                         }
                         else if (stm2->type == L_StmKind::T_STORE && stm2->u.STORE->src->kind == OperandKind::ICONST &&
                                  stm2->u.STORE->ptr->u.TEMP == temp)
@@ -576,6 +579,7 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
     // for 每个变量 a
     for (auto a : defsites)
     {
+        cout << "a: " << a.first->num << endl;
         // worklist=defsites[a]
         std::unordered_set<LLVMIR::L_block *> worklist = a.second;
 
@@ -584,6 +588,8 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
         {
             // n=worklist中的一个元素
             LLVMIR::L_block *n = *worklist.begin();
+
+            cout << "   n: " << n->label->name << endl;
 
             // worklist=worklist-{n}
             worklist.erase(n);
@@ -605,6 +611,8 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
                     printf("Error\n");
                     exit(1);
                 }
+
+                cout << "       y: " << y->label->name << endl;
 
                 // if a∉A_phi[y] 并且该变量在该节点live in
                 if (A_phi[y].find(a.first) == A_phi[y].end() && FG_In(nodePtr).find(a.first) != FG_In(nodePtr).end())
