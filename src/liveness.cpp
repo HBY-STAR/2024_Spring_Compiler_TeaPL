@@ -145,7 +145,7 @@ std::list<AS_operand **> get_def_operand(L_stm *stm)
     break;
     case L_StmKind::T_STORE:
     {
-        AS_operand_list.push_back(&(stm->u.STORE->ptr));
+        // AS_operand_list.push_back(&(stm->u.STORE->ptr));
     }
     break;
     case L_StmKind::T_LABEL:
@@ -238,6 +238,7 @@ std::list<AS_operand **> get_use_operand(L_stm *stm)
     case L_StmKind::T_STORE:
     {
         AS_operand_list.push_back(&(stm->u.STORE->src));
+        AS_operand_list.push_back(&(stm->u.STORE->ptr));
     }
     break;
     case L_StmKind::T_LABEL:

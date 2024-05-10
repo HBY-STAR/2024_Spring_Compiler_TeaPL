@@ -46,9 +46,9 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         init_table();
         combine_addr(fun);
 
-        std::ofstream debugStream;
-        debugStream.open("debug.ll");
-        printL_func(debugStream, fun);
+        // std::ofstream debugStream;
+        // debugStream.open("debug.ll");
+        //  printL_func(debugStream, fun);
         mem2reg(fun);
 
         // exit(0);
@@ -59,43 +59,43 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         // Show_graph(stdout,RA_bg);
         SingleSourceGraph(RA_bg.mynodes[0], RA_bg, fun);
         // cout << endl;
-        Show_graph(stdout, RA_bg);
+        // Show_graph(stdout, RA_bg);
 
-        printL_func(debugStream, fun);
+        // printL_func(debugStream, fun);
 
         Liveness(RA_bg.mynodes[0], RA_bg, fun->args);
-        Show_Liveness(stdout, RA_bg);
-        // exit(0);
+        // Show_Liveness(stdout, RA_bg);
+        //  exit(0);
 
         // checked
         Dominators(RA_bg);
-        printf_domi();
-        // exit(0);
+        // printf_domi();
+        //  exit(0);
 
         // checked
         tree_Dominators(RA_bg);
-        printf_D_tree();
-        // exit(0);
+        // printf_D_tree();
+        //  exit(0);
 
         // checked
         // 默认0是入口block
         computeDF(RA_bg, RA_bg.mynodes[0]);
-        printf_DF();
-        //debugStream.close();
-        //exit(0);
+        // printf_DF();
+        //  debugStream.close();
+        //  exit(0);
 
         // printL_func(debugStream, fun);
         Place_phi_fu(RA_bg, fun);
-        printL_func(debugStream, fun);
+        // printL_func(debugStream, fun);
         // debugStream.close();
         Rename(RA_bg);
 
         combine_addr(fun);
 
-        printL_func(debugStream, fun);
+        // printL_func(cout, fun);
 
-        debugStream.close();
-        exit(0);
+        // debugStream.close();
+        // exit(0);
     }
     return prog;
 }
@@ -162,7 +162,7 @@ void mem2reg(LLVMIR::L_func *fun)
                 // 获取 ALLOCA 操作数
                 Temp_temp *temp = stm->u.ALLOCA->dst->u.TEMP;
                 // ALLOCA 替换为 MOVE 0
-                auto move = L_Move(AS_Operand_Const(0), stm->u.ALLOCA->dst);
+                auto move = L_Move(AS_Operand_Const(0), AS_Operand_Temp(temp));
                 stm_it = block->instrs.erase(stm_it);
                 stm_it = block->instrs.insert(stm_it, move);
 
@@ -181,7 +181,7 @@ void mem2reg(LLVMIR::L_func *fun)
                             // }
                             // else
                             // {
-                                temp2ASoper[stm2->u.LOAD->dst->u.TEMP] = stm2->u.LOAD->ptr;
+                            temp2ASoper[stm2->u.LOAD->dst->u.TEMP] = AS_Operand_Temp(stm2->u.LOAD->ptr->u.TEMP);
                             // }
                             // 删除 LOAD 指令
                             stm2_it = block2->instrs.erase(stm2_it);
@@ -194,7 +194,7 @@ void mem2reg(LLVMIR::L_func *fun)
                             // }
                             // else
                             // {
-                                temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = stm2->u.STORE->src;
+                            temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = AS_Operand_Temp(stm2->u.STORE->src->u.TEMP);
                             // }
                             // 删除 STORE 指令
                             // stm2_it = block2->instrs.erase(stm2_it);
@@ -214,7 +214,7 @@ void mem2reg(LLVMIR::L_func *fun)
                             //     temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = stm2->u.STORE->src;
                             // }
                             // STORE 替换为 MOVE
-                            auto move = L_Move(stm2->u.STORE->src, stm2->u.STORE->ptr);
+                            auto move = L_Move(AS_Operand_Const(stm2->u.STORE->src->u.ICONST), AS_Operand_Temp(stm2->u.STORE->ptr->u.TEMP));
                             stm2_it = block2->instrs.erase(stm2_it);
                             stm2_it = block2->instrs.insert(stm2_it, move);
                         }
@@ -239,7 +239,7 @@ void mem2reg(LLVMIR::L_func *fun)
                         {
                             if ((*AS_op)->kind == OperandKind::TEMP && temp2ASoper.find((*AS_op)->u.TEMP) != temp2ASoper.end())
                             {
-                                *AS_op = temp2ASoper[(*AS_op)->u.TEMP];
+                                *AS_op = AS_Operand_Temp(temp2ASoper[(*AS_op)->u.TEMP]->u.TEMP);
                             }
                         }
                     }
@@ -460,7 +460,7 @@ void tree_Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
 
         if (idom != nullptr)
         {
-            cout << x.second->nodeInfo()->label->name << " " << idom->label->name << endl;
+            // << x.second->nodeInfo()->label->name << " " << idom->label->name << endl;
             tree_dominators[x.second->nodeInfo()].pred = idom;
             tree_dominators[idom].succs.insert(x.second->nodeInfo());
         }
@@ -579,7 +579,7 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
     // for 每个变量 a
     for (auto a : defsites)
     {
-        cout << "a: " << a.first->num << endl;
+        //cout << "a: " << a.first->num << endl;
         // worklist=defsites[a]
         std::unordered_set<LLVMIR::L_block *> worklist = a.second;
 
@@ -589,7 +589,7 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
             // n=worklist中的一个元素
             LLVMIR::L_block *n = *worklist.begin();
 
-            cout << "   n: " << n->label->name << endl;
+            //cout << "   n: " << n->label->name << endl;
 
             // worklist=worklist-{n}
             worklist.erase(n);
@@ -612,7 +612,7 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
                     exit(1);
                 }
 
-                cout << "       y: " << y->label->name << endl;
+                //cout << "       y: " << y->label->name << endl;
 
                 // if a∉A_phi[y] 并且该变量在该节点live in
                 if (A_phi[y].find(a.first) == A_phi[y].end() && FG_In(nodePtr).find(a.first) != FG_In(nodePtr).end())
@@ -707,7 +707,10 @@ void ReplaceStm(Temp_temp *old, Temp_temp *new_temp, L_stm *stm)
     {
         if ((*AS_op)->kind == OperandKind::TEMP && (*AS_op)->u.TEMP == old)
         {
-            (*AS_op)->u.TEMP = new Temp_temp(*new_temp);
+            // cout << "replace: " << old->num << " " << new_temp->num << endl;
+            // cout << (*AS_op)->u.TEMP << "   " << new_temp << endl;
+            *AS_op = AS_Operand_Temp(new_temp);
+            break;
         }
     }
 }
@@ -726,12 +729,15 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
             for (auto x : get_use(stm))
             {
                 // i = top(stack[x])
-                if (Stack.find(x->num) == Stack.end())
-                {
-                    Stack[x->num] = new stack<Temp_temp *>();
-                    Stack[x->num]->push(Temp_newtemp_int());
-                }
+                // if (Stack.find(x->num) == Stack.end())
+                // {
+                //     Stack[x->num] = new stack<Temp_temp *>();
+                //     Stack[x->num]->push(Temp_newtemp_int());
+                // }
                 Temp_temp *i = Stack[x->num]->top();
+                // cout << endl;
+                // cout << x->num << "-stack-top: " << Stack[x->num]->top()->num << endl;
+                // cout << "use: " << x->num << "->" << i->num << endl;
 
                 // 在S中用x_i替换x的每个使用
                 ReplaceStm(x, i, stm);
@@ -746,12 +752,15 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
             Temp_temp *i = Temp_newtemp_int();
 
             // 将 i 压入栈 stack[a]
-            cout << "search: " << a->num << endl;
-            if (Stack.find(a->num) == Stack.end())
-            {
-                Stack[a->num] = new stack<Temp_temp *>();
-            }
+            // if (Stack.find(a->num) == Stack.end())
+            // {
+            //     Stack[a->num] = new stack<Temp_temp *>();
+            // }
+            // cout << endl;
+            // cout << a->num << "-stack-push: " << i->num << endl;
+            // cout << "def: " << a->num << "->" << i->num << endl;
             Stack[a->num]->push(i);
+            // cout << a->num << "-stack-top: " << Stack[a->num]->top()->num << endl;
 
             // 在S中用a_i替换a的每个定义
             ReplaceStm(a, i, stm);
@@ -777,25 +786,27 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
         {
             if (stm->type == L_StmKind::T_PHI)
             {
-                cout << "start" << endl;
-                printL_stm(cout, stm);
+                // cout << endl;
+                // cout << "phi-start:" << endl;
+                // printL_stm(cout, stm);
                 // 设phi函数的第j个操作数是a
                 Temp_temp *a = stm->u.PHI->phis[j].first->u.TEMP;
-                if (a && Stack.find(a->num) != Stack.end() && !(Stack[a->num])->empty())
-                {
-                    // cout << "phi: " << a << endl;
-                    // i = top(stack[a])
-                    Temp_temp *i = (Stack[a->num])->top();
-
-                    // 用a_i替换第j个操作数
-                    stm->u.PHI->phis[j].first->u.TEMP = i;
-                }
-                else
-                {
-                    continue;
-                }
-                printL_stm(cout, stm);
-                cout << "end" << endl;
+                // cout << "here" << endl;
+                //  if (a && Stack.find(a->num) != Stack.end() && !(Stack[a->num])->empty())
+                //  {
+                //  cout << "phi: " << a << endl;
+                //  i = top(stack[a])
+                Temp_temp *i = Stack[a->num]->top();
+                // 用a_i替换第j个操作数
+                // ReplaceStm(a, i, stm);
+                stm->u.PHI->phis[j].first = AS_Operand_Temp(i);
+                // }
+                // else
+                // {
+                //     continue;
+                // }
+                // printL_stm(cout, stm);
+                // cout << "phi-end" << endl;
             }
         }
     }
@@ -868,7 +879,7 @@ void Rename(GRAPH::Graph<LLVMIR::L_block *> &bg)
                         std::stack<Temp_temp *> *s = new std::stack<Temp_temp *>();
                         s->push(temp);
                         Stack.insert({b->num, s});
-                        cout << "init: " << b->num << endl;
+                        //cout << "init: " << b->num << "-> " << temp->num << endl;
                     }
                 }
             }
