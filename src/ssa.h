@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <list>
+#include <fstream>
 
 LLVMIR::L_prog* SSA(LLVMIR::L_prog*prog);
 void combine_addr(LLVMIR::L_func* fun);
@@ -21,7 +22,7 @@ bool Set_eq(std::unordered_set<LLVMIR::L_block *> &a, std::unordered_set<LLVMIR:
 void tree_Dominators(GRAPH::Graph<LLVMIR::L_block*>& bg);
 void computeDF(GRAPH::Graph<LLVMIR::L_block*>& bg,GRAPH::Node<LLVMIR::L_block*>* r);
 void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block*>& bg,LLVMIR:: L_func*fun);
-void Rename(GRAPH::Graph<LLVMIR::L_block*>& bg, LLVMIR:: L_func*fun);
+void Rename(GRAPH::Graph<LLVMIR::L_block*>& bg, LLVMIR:: L_func*fun, std::ostream& debugLog);
 void printf_domi();
 void printf_D_tree();
 void printf_DF();

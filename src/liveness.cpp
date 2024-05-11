@@ -190,11 +190,12 @@ std::list<AS_operand **> get_def_operand(L_stm *stm)
     break;
     case L_StmKind::T_ALLOCA:
     {
+        // AS_operand_list.push_back(&(stm->u.ALLOCA->dst));
     }
     break;
     case L_StmKind::T_GEP:
     {
-        AS_operand_list.push_back(&(stm->u.GEP->new_ptr));
+        // AS_operand_list.push_back(&(stm->u.GEP->new_ptr));
     }
     break;
     default:
@@ -232,13 +233,13 @@ std::list<AS_operand **> get_use_operand(L_stm *stm)
     break;
     case L_StmKind::T_LOAD:
     {
-        AS_operand_list.push_back(&(stm->u.LOAD->ptr));
+        // AS_operand_list.push_back(&(stm->u.LOAD->ptr));
     }
     break;
     case L_StmKind::T_STORE:
     {
         AS_operand_list.push_back(&(stm->u.STORE->src));
-        AS_operand_list.push_back(&(stm->u.STORE->ptr));
+        // AS_operand_list.push_back(&(stm->u.STORE->ptr));
     }
     break;
     case L_StmKind::T_LABEL:
@@ -269,7 +270,10 @@ std::list<AS_operand **> get_use_operand(L_stm *stm)
     {
         for (auto &arg : stm->u.CALL->args)
         {
-            AS_operand_list.push_back(&arg);
+            if (arg->kind == OperandKind::TEMP && (arg->u.TEMP->type == TempType::INT_TEMP || (arg->u.TEMP->type == TempType::INT_PTR && arg->u.TEMP->len == 0)))
+            {
+                AS_operand_list.push_back(&arg);
+            }
         }
     }
     break;
@@ -301,7 +305,7 @@ std::list<AS_operand **> get_use_operand(L_stm *stm)
     break;
     case L_StmKind::T_GEP:
     {
-        AS_operand_list.push_back(&(stm->u.GEP->base_ptr));
+        // AS_operand_list.push_back(&(stm->u.GEP->base_ptr));
         AS_operand_list.push_back(&(stm->u.GEP->index));
     }
     break;
