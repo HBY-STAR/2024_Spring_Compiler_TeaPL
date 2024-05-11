@@ -48,7 +48,7 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
 
         std::ofstream debugStream;
         debugStream.open("debug.ll");
-        //  printL_func(debugStream, fun);
+        //printL_func(debugStream, fun);
         mem2reg(fun);
 
         // exit(0);
@@ -64,38 +64,38 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         // printL_func(debugStream, fun);
 
         Liveness(RA_bg.mynodes[0], RA_bg, fun->args);
-        Show_Liveness(stdout, RA_bg);
+        //Show_Liveness(stdout, RA_bg);
         //  exit(0);
 
         // checked
         Dominators(RA_bg);
-        printf_domi();
+        //printf_domi();
         //  exit(0);
 
         // checked
         tree_Dominators(RA_bg);
-        printf_D_tree();
+        //printf_D_tree();
         //  exit(0);
 
         // checked
         // 默认0是入口block
         computeDF(RA_bg, RA_bg.mynodes[0]);
-        printf_DF();
+        //printf_DF();
         //  debugStream.close();
         //  exit(0);
 
-        printL_func(debugStream, fun);
+        //printL_func(debugStream, fun);
         Place_phi_fu(RA_bg, fun);
-        // printL_func(debugStream, fun);
+        //printL_func(debugStream, fun);
         // debugStream.close();
         Rename(RA_bg,fun);
 
         combine_addr(fun);
 
-        printL_func(debugStream, fun);
+        //printL_func(debugStream, fun);
 
         debugStream.close();
-        exit(1);
+        //exit(1);
     }
     return prog;
 }
@@ -398,7 +398,7 @@ void printf_DF()
     printf("DF:\n");
     for (auto x : DF_array)
     {
-        //printf("%s :\n", x.first->label->name.c_str());
+        printf("%s :\n", x.first->label->name.c_str());
         for (auto t : x.second)
         {
             printf("%s ", t->label->name.c_str());
@@ -413,57 +413,48 @@ void tree_Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
     // 由支配节点集合构造支配树
     // idom(n) != n && idom(n) in dom(n) && idom(n) not in dom(dom(n))
 
-    // 初始化
-    tree_dominators.clear();
-
-    // 计算支配树
-    for (auto x : bg.mynodes)
+    for (auto &x : dominators)
     {
-        LLVMIR::L_block *idom = nullptr;
-
-        // 根节点
-        if (x.first == 0)
+        // idom(n)是n的必经结点
+        for (auto &y : x.second)
         {
-            tree_dominators[x.second->nodeInfo()].pred = nullptr;
+            if (y != x.first)
+            { // idom(n)和n不是同一个结点
+                bool imm = true;
+                for (auto &z : x.second)
+                {
+                    // idom(n)不是 n的其他必经结点的必经结点。
+                    if (z == y || z == x.first)
+                    {
+                        continue;
+                    }
+                    if (dominators[z].find(y) != dominators[z].end())
+                    {
+                        imm = false;
+                        break;
+                    }
+                }
+                if (imm)
+                {
+                    imm_Dominator imm_Dominator_temp;
+                    // printf("%s:%d,%s\n", __FILE__, __LINE__, y->label->name.c_str());
+
+                    imm_Dominator_temp.pred = y;
+                    imm_Dominator_temp.succs = unordered_set<LLVMIR::L_block *>();
+                    // printf("%s:%d,%s\n", __FILE__, __LINE__, x.first->label->name.c_str());
+                    tree_dominators[x.first] = imm_Dominator_temp;
+                }
+            }
+        }
+    }
+    for (auto &xx : dominators)
+    {
+        auto x = tree_dominators[xx.first];
+        if (x.pred == nullptr)
             continue;
-        }
-
-        for (auto y : dominators[x.second->nodeInfo()])
-        {
-            // idom(n) != n && idom(n) in dom(n)
-            if (y == x.second->nodeInfo())
-            {
-                continue;
-            }
-
-            // idom(n) not in dom(dom(n))
-            bool flag1 = false;
-            for (auto z : dominators[x.second->nodeInfo()])
-            {
-                if (z == y)
-                {
-                    continue;
-                }
-                if (dominators[y].find(z) == dominators[y].end())
-                {
-                    flag1 = true;
-                    break;
-                }
-            }
-
-            if (flag1)
-            {
-                idom = y;
-                break;
-            }
-        }
-
-        if (idom != nullptr)
-        {
-            // << x.second->nodeInfo()->label->name << " " << idom->label->name << endl;
-            tree_dominators[x.second->nodeInfo()].pred = idom;
-            tree_dominators[idom].succs.insert(x.second->nodeInfo());
-        }
+        // printf("%s:%d,%s\n", __FILE__, __LINE__, x.pred->label->name.c_str());
+        if (x.pred != nullptr)
+            tree_dominators[x.pred].succs.emplace(xx.first);
     }
 }
 
@@ -583,7 +574,7 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
     // for 每个变量 a
     for (auto a : defsites)
     {
-        cout << "a: " << a.first->num << endl;
+        //cout << "a: " << a.first->num << endl;
         //  worklist=defsites[a]
         std::unordered_set<LLVMIR::L_block *> worklist = a.second;
 
@@ -593,7 +584,7 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
             // n=worklist中的一个元素
             LLVMIR::L_block *n = *worklist.begin();
 
-            cout << "   n: " << n->label->name << endl;
+            //cout << "   n: " << n->label->name << endl;
 
             // worklist=worklist-{n}
             worklist.erase(n);
@@ -739,9 +730,9 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
                 //     Stack[x->num]->push(Temp_newtemp_int());
                 // }
                 Temp_temp *i = Stack[x->num]->top();
-                // cout << endl;
-                // cout << x->num << "-stack-top: " << Stack[x->num]->top()->num << endl;
-                // cout << "use: " << x->num << "->" << i->num << endl;
+                cout << endl;
+                cout << x->num << "-stack-top: " << Stack[x->num]->top()->num << endl;
+                cout << "use: " << x->num << "->" << i->num << endl;
 
                 // 在S中用x_i替换x的每个使用
                 ReplaceStm(x, i, stm);
@@ -760,9 +751,9 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
             // {
             //     Stack[a->num] = new stack<Temp_temp *>();
             // }
-            // cout << endl;
-            // cout << a->num << "-stack-push: " << i->num << endl;
-            // cout << "def: " << a->num << "->" << i->num << endl;
+            cout << endl;
+            cout << a->num << "-stack-push: " << i->num << endl;
+            cout << "def: " << a->num << "->" << i->num << endl;
             Stack[a->num]->push(i);
             // cout << a->num << "-stack-top: " << Stack[a->num]->top()->num << endl;
 
@@ -790,11 +781,12 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
         {
             if (stm->type == L_StmKind::T_PHI)
             {
-                // cout << endl;
-                // cout << "phi-start:" << endl;
-                // printL_stm(cout, stm);
+                cout << endl;
+                cout << "phi-start:" << endl;
                 // 设phi函数的第j个操作数是a
                 Temp_temp *a = stm->u.PHI->phis[j].first->u.TEMP;
+                cout << "   "<<a->num << "-stack-top: " << Stack[a->num]->top()->num << endl;
+                printL_stm(cout, stm);
                 // cout << "here" << endl;
                 //  if (a && Stack.find(a->num) != Stack.end() && !(Stack[a->num])->empty())
                 //  {
@@ -809,8 +801,8 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
                 // {
                 //     continue;
                 // }
-                // printL_stm(cout, stm);
-                // cout << "phi-end" << endl;
+                printL_stm(cout, stm);
+                cout << "phi-end" << endl;
             }
         }
     }
