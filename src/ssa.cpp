@@ -28,7 +28,7 @@ unordered_map<L_block *, unordered_set<L_block *>> dominators;
 unordered_map<L_block *, imm_Dominator> tree_dominators;
 unordered_map<L_block *, unordered_set<L_block *>> DF_array;
 unordered_map<L_block *, Node<LLVMIR::L_block *> *> revers_graph;
-unordered_map<Temp_temp *, AS_operand *> temp2ASoper;
+unordered_map<int , AS_operand *> temp2ASoper;
 
 static void init_table()
 {
@@ -50,7 +50,7 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         std::ofstream debugLog;
         debugStream.open("debug.ll");
         debugLog.open("debug.log");
-        // printL_func(debugStream, fun);
+        printL_func(debugStream, fun);
         mem2reg(fun);
 
         // exit(0);
@@ -61,9 +61,12 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         // Show_graph(stdout,RA_bg);
         SingleSourceGraph(RA_bg.mynodes[0], RA_bg, fun);
         // cout << endl;
-        // Show_graph(stdout, RA_bg);
+        //Show_graph(stdout, RA_bg);
+        // exit(1);
 
-        // printL_func(debugStream, fun);
+        printL_func(debugStream, fun);
+
+        // debugStream.close();
 
         Liveness(RA_bg.mynodes[0], RA_bg, fun->args);
         // Show_Liveness(stdout, RA_bg);
@@ -89,14 +92,15 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         // printL_func(debugStream, fun);
         Place_phi_fu(RA_bg, fun);
         printL_func(debugStream, fun);
-        debugStream.close();
-        Rename(RA_bg, fun, cout);
+       
+        Rename(RA_bg, fun, debugStream);
 
         combine_addr(fun);
 
         // printL_func(debugStream, fun);
 
         debugStream.close();
+        //cout << endl;
         // exit(1);
     }
     return prog;
@@ -165,6 +169,7 @@ void mem2reg(LLVMIR::L_func *fun)
                 Temp_temp *temp = stm->u.ALLOCA->dst->u.TEMP;
                 // ALLOCA 替换为 MOVE 0
                 auto move = L_Move(AS_Operand_Const(0), AS_Operand_Temp(temp));
+                //temp2ASoper[stm->u.ALLOCA->dst->u.TEMP] = AS_Operand_Temp(temp);
                 stm_it = block->instrs.erase(stm_it);
                 stm_it = block->instrs.insert(stm_it, move);
 
@@ -175,7 +180,7 @@ void mem2reg(LLVMIR::L_func *fun)
                     for (auto stm2_it = block2->instrs.begin(); stm2_it != block2->instrs.end();)
                     {
                         auto stm2 = *stm2_it;
-                        if (stm2->type == L_StmKind::T_LOAD && stm2->u.LOAD->dst->kind == OperandKind::TEMP && stm2->u.LOAD->ptr->u.TEMP == temp)
+                        if (stm2->type == L_StmKind::T_LOAD && stm2->u.LOAD->dst->kind == OperandKind::TEMP && stm2->u.LOAD->ptr->u.TEMP->num == temp->num)
                         {
                             // if (temp2ASoper.find(stm2->u.LOAD->ptr->u.TEMP) != temp2ASoper.end())
                             // {
@@ -183,12 +188,13 @@ void mem2reg(LLVMIR::L_func *fun)
                             // }
                             // else
                             // {
-                            temp2ASoper[stm2->u.LOAD->dst->u.TEMP] = AS_Operand_Temp(stm2->u.LOAD->ptr->u.TEMP);
+                            temp2ASoper[stm2->u.LOAD->dst->u.TEMP->num] = AS_Operand_Temp(stm2->u.LOAD->ptr->u.TEMP);
                             // }
                             // 删除 LOAD 指令
+                            //cout << "delete-load: " << stm2->u.LOAD->dst->u.TEMP->num << endl;
                             stm2_it = block2->instrs.erase(stm2_it);
                         }
-                        else if (stm2->type == L_StmKind::T_STORE && stm2->u.STORE->src->kind == OperandKind::TEMP && stm2->u.STORE->ptr->u.TEMP == temp)
+                        else if (stm2->type == L_StmKind::T_STORE && stm2->u.STORE->src->kind == OperandKind::TEMP && stm2->u.STORE->ptr->u.TEMP->num == temp->num)
                         {
                             // if (temp2ASoper.find(stm2->u.STORE->src->u.TEMP) != temp2ASoper.end())
                             // {
@@ -196,16 +202,17 @@ void mem2reg(LLVMIR::L_func *fun)
                             // }
                             // else
                             // {
-                            temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = AS_Operand_Temp(stm2->u.STORE->src->u.TEMP);
+                            //temp2ASoper[stm2->u.STORE->ptr->u.TEMP->num] = AS_Operand_Temp(stm2->u.STORE->src->u.TEMP);
                             // }
                             // 删除 STORE 指令
                             // stm2_it = block2->instrs.erase(stm2_it);
+                            //cout << "delete-store: " << stm2->u.STORE->src->u.TEMP->num << endl;
                             auto move = L_Move(stm2->u.STORE->src, stm2->u.STORE->ptr);
                             stm2_it = block2->instrs.erase(stm2_it);
                             stm2_it = block2->instrs.insert(stm2_it, move);
                         }
                         else if (stm2->type == L_StmKind::T_STORE && stm2->u.STORE->src->kind == OperandKind::ICONST &&
-                                 stm2->u.STORE->ptr->u.TEMP == temp)
+                                 stm2->u.STORE->ptr->u.TEMP->num == temp->num)
                         {
                             // if (temp2ASoper.find(stm2->u.STORE->src->u.TEMP) != temp2ASoper.end())
                             // {
@@ -216,6 +223,7 @@ void mem2reg(LLVMIR::L_func *fun)
                             //     temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = stm2->u.STORE->src;
                             // }
                             // STORE 替换为 MOVE
+                            //cout << "delete-store: " << stm2->u.STORE->src->u.ICONST << endl;
                             auto move = L_Move(AS_Operand_Const(stm2->u.STORE->src->u.ICONST), AS_Operand_Temp(stm2->u.STORE->ptr->u.TEMP));
                             stm2_it = block2->instrs.erase(stm2_it);
                             stm2_it = block2->instrs.insert(stm2_it, move);
@@ -232,16 +240,17 @@ void mem2reg(LLVMIR::L_func *fun)
                 {
                     for (auto stm2 : block2->instrs)
                     {
-                        if (stm2->type == L_StmKind::T_MOVE)
-                        {
-                            continue;
-                        }
+                        // if (stm2->type == L_StmKind::T_MOVE)
+                        // {
+                        //     continue;
+                        // }
                         auto AS_operand_list = get_all_AS_operand(stm2);
                         for (auto &AS_op : AS_operand_list)
                         {
-                            if ((*AS_op)->kind == OperandKind::TEMP && temp2ASoper.find((*AS_op)->u.TEMP) != temp2ASoper.end())
+                            if ((*AS_op)->kind == OperandKind::TEMP && temp2ASoper.find((*AS_op)->u.TEMP->num) != temp2ASoper.end())
                             {
-                                *AS_op = AS_Operand_Temp(temp2ASoper[(*AS_op)->u.TEMP]->u.TEMP);
+                                //cout << "replace: " << (*AS_op)->u.TEMP->num << " " << temp2ASoper[(*AS_op)->u.TEMP->num]->u.TEMP->num << endl;
+                                *AS_op = AS_Operand_Temp(temp2ASoper[(*AS_op)->u.TEMP->num]->u.TEMP);
                             }
                         }
                     }
@@ -253,6 +262,8 @@ void mem2reg(LLVMIR::L_func *fun)
             }
         }
     }
+
+    
 }
 
 // done
@@ -699,6 +710,7 @@ static list<AS_operand **> get_use_int_operand(LLVMIR::L_stm *stm)
 // run tests/public/BFS.tea tests/public/BFS.ll < tests/public/BFS.in
 // run tests/public/expr_eval.tea tests/public/expr_eval.ll < tests/public/expr_eval.in
 // run tests/public/big_int_mul.tea tests/public/big_int_mul.ll
+// run tests/public/int_io.tea tests/public/int_io.ll < tests/public/int_io.in
 
 void ReplaceStm(Temp_temp *old, Temp_temp *new_temp, L_stm *stm)
 {
@@ -715,10 +727,10 @@ void ReplaceStm(Temp_temp *old, Temp_temp *new_temp, L_stm *stm)
 }
 
 // Rename(n)
-static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR::L_block *> *n, unordered_map<int, stack<Temp_temp *> *> &Stack, std::ostream& debugLog)
+static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR::L_block *> *n, unordered_map<int, stack<Temp_temp *> *> &Stack, std::ostream &debugLog)
 {
     debugLog << endl
-         << n->nodeInfo()->label->name << endl;
+             << n->nodeInfo()->label->name << endl;
 
     vector<int> defs;
 
@@ -732,7 +744,10 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
             // for S中某个变量x的每个使用
             for (auto x : get_use(stm))
             {
-                
+                if (x->len > 0)
+                {
+                    continue;
+                }
                 // i = top(stack[x])
                 debugLog << "search: " << x->num << endl;
                 Temp_temp *i = Stack[x->num]->top();
@@ -827,11 +842,10 @@ static void Rename_temp(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR:
         // 从栈 stack[a] 中弹出栈顶元素
         Stack[temp]->pop();
     }
-    
 }
 
 // Rename
-void Rename(GRAPH::Graph<LLVMIR::L_block *> &bg, LLVMIR::L_func *fun,  std::ostream& debugLog)
+void Rename(GRAPH::Graph<LLVMIR::L_block *> &bg, LLVMIR::L_func *fun, std::ostream &debugLog)
 {
     // 初始化：
     // for 每个变量 a

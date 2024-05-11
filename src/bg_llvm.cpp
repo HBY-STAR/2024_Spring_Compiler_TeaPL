@@ -86,7 +86,7 @@ void SingleSourceGraph(Node<L_block *> *r, Graph<L_block *> &bg, L_func *fun)
     // 从 r 开始遍历图，为每个遍历过的节点着色
 
     // 1. 初始化
-    for (auto node : *bg.nodes())
+    for (auto node : bg.mynodes)
     {
         node.second->color = 0;
     }
@@ -105,21 +105,36 @@ void SingleSourceGraph(Node<L_block *> *r, Graph<L_block *> &bg, L_func *fun)
             if (node_succ->color == 0)
             {
                 node_succ->color = 1;
+                //cout << "colored: " << node_succ->info->label->name << endl;
                 stack.push_back(node_succ);
             }
         }
     }
 
     // 3. 删除未着色的节点
-    for (auto it = bg.nodes()->begin(); it != bg.nodes()->end();)
+    for (auto it = bg.mynodes.begin(); it != bg.mynodes.end();)
     {
         if (it->second->color == 0)
         {
+            //cout << "delete: " << it->second->info->label->name << endl;
+
+            // 删除相关边
+            for (auto pred : it->second->preds)
+            {
+                bg.mynodes[pred]->succs.erase(it->first);
+            }
+            for (auto succ : it->second->succs)
+            {
+                bg.mynodes[succ]->preds.erase(it->first);
+            }
+
+
+
             // 删除 func 中的block
             fun->blocks.remove(it->second->info);
 
             // 删除 bg 中的节点
-            it = bg.nodes()->erase(it);
+            it = bg.mynodes.erase(it);
         }
         else
         {
