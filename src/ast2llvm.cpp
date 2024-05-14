@@ -1478,9 +1478,16 @@ AS_operand *ast2llvmExprUnit(aA_exprUnit e)
     else if (e->kind == A_arrayExprKind)
     {
         AS_operand *val = ast2llvmArrayExpr(e->u.arrayExpr);
+        // if (val->u.TEMP->len == 0)
+        // {
         Temp_temp *ret = Temp_newtemp_int();
         emit_irs.push_back(L_Load(AS_Operand_Temp(ret), val));
         return AS_Operand_Temp(ret);
+        // }
+        // else
+        // {
+        //     return val;
+        // }
     }
     else if (e->kind == A_memberExprKind)
     {
@@ -1488,6 +1495,7 @@ AS_operand *ast2llvmExprUnit(aA_exprUnit e)
         Temp_temp *ret = Temp_newtemp_int();
         emit_irs.push_back(L_Load(AS_Operand_Temp(ret), val));
         return AS_Operand_Temp(ret);
+        // return val;
     }
     else
     {

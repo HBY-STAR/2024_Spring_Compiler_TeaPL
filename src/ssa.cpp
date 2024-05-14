@@ -15,6 +15,10 @@
 
 #include <fstream>
 
+// tests/private/sort.ll
+// lldb-18 -- lli-18 ./output/sort.ll
+// run 
+
 using namespace std;
 using namespace LLVMIR;
 using namespace GRAPH;
@@ -41,68 +45,68 @@ static void init_table()
 
 LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
 {
-    for (auto &fun : prog->funcs)
-    {
-        init_table();
-        combine_addr(fun);
+    // for (auto &fun : prog->funcs)
+    // {
+    //     init_table();
+    //     combine_addr(fun);
 
-        std::ofstream debugStream;
-        std::ofstream debugLog;
-        debugStream.open("debug.ll");
-        debugLog.open("debug.log");
-        printL_func(debugStream, fun);
-        mem2reg(fun);
+    //     std::ofstream debugStream;
+    //     std::ofstream debugLog;
+    //     //debugStream.open("debug.ll");
+    //     //debugLog.open("debug.log");
+    //     //printL_func(debugStream, fun);
+    //     mem2reg(fun);
 
-        // exit(0);
+    //     // exit(0);
 
-        auto RA_bg = Create_bg(fun->blocks);
+    //     auto RA_bg = Create_bg(fun->blocks);
 
-        // checked
-        // Show_graph(stdout,RA_bg);
-        SingleSourceGraph(RA_bg.mynodes[0], RA_bg, fun);
-        // cout << endl;
-        //Show_graph(stdout, RA_bg);
-        // exit(1);
+    //     // checked
+    //     // Show_graph(stdout,RA_bg);
+    //     SingleSourceGraph(RA_bg.mynodes[0], RA_bg, fun);
+    //     // cout << endl;
+    //     //Show_graph(stdout, RA_bg);
+    //     // exit(1);
 
-        printL_func(debugStream, fun);
+    //     //printL_func(debugStream, fun);
 
-        // debugStream.close();
+    //     // debugStream.close();
 
-        Liveness(RA_bg.mynodes[0], RA_bg, fun->args);
-        // Show_Liveness(stdout, RA_bg);
-        //   exit(0);
+    //     Liveness(RA_bg.mynodes[0], RA_bg, fun->args);
+    //     // Show_Liveness(stdout, RA_bg);
+    //     //   exit(0);
 
-        // checked
-        Dominators(RA_bg);
-        // printf_domi();
-        //   exit(0);
+    //     // checked
+    //     Dominators(RA_bg);
+    //     // printf_domi();
+    //     //   exit(0);
 
-        // checked
-        tree_Dominators(RA_bg);
-        // printf_D_tree();
-        //   exit(0);
+    //     // checked
+    //     tree_Dominators(RA_bg);
+    //     // printf_D_tree();
+    //     //   exit(0);
 
-        // checked
-        // 默认0是入口block
-        computeDF(RA_bg, RA_bg.mynodes[0]);
-        // printf_DF();
-        //   debugStream.close();
-        //   exit(0);
+    //     // checked
+    //     // 默认0是入口block
+    //     computeDF(RA_bg, RA_bg.mynodes[0]);
+    //     // printf_DF();
+    //     //   debugStream.close();
+    //     //   exit(0);
 
-        // printL_func(debugStream, fun);
-        Place_phi_fu(RA_bg, fun);
-        printL_func(debugStream, fun);
+    //     // printL_func(debugStream, fun);
+    //     Place_phi_fu(RA_bg, fun);
+    //     //printL_func(debugStream, fun);
        
-        Rename(RA_bg, fun, debugStream);
+    //     Rename(RA_bg, fun, debugStream);
 
-        combine_addr(fun);
+    //     combine_addr(fun);
 
-        // printL_func(debugStream, fun);
+    //     // printL_func(debugStream, fun);
 
-        debugStream.close();
-        //cout << endl;
-        // exit(1);
-    }
+    //     debugStream.close();
+    //     //cout << endl;
+    //     // exit(1);
+    // }
     return prog;
 }
 
