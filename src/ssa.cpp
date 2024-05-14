@@ -45,68 +45,69 @@ static void init_table()
 
 LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
 {
-    // for (auto &fun : prog->funcs)
-    // {
-    //     init_table();
-    //     combine_addr(fun);
+    for (auto &fun : prog->funcs)
+    {
+        init_table();
+        combine_addr(fun);
 
-    //     std::ofstream debugStream;
-    //     std::ofstream debugLog;
-    //     //debugStream.open("debug.ll");
-    //     //debugLog.open("debug.log");
-    //     //printL_func(debugStream, fun);
-    //     mem2reg(fun);
+        std::ofstream debugStream;
+        std::ofstream debugLog;
+        debugStream.open("debug.ll");
+        debugLog.open("debug.log");
+        //printL_func(debugStream, fun);
+        mem2reg(fun);
 
-    //     // exit(0);
+        // exit(0);
 
-    //     auto RA_bg = Create_bg(fun->blocks);
+        auto RA_bg = Create_bg(fun->blocks);
 
-    //     // checked
-    //     // Show_graph(stdout,RA_bg);
-    //     SingleSourceGraph(RA_bg.mynodes[0], RA_bg, fun);
-    //     // cout << endl;
-    //     //Show_graph(stdout, RA_bg);
-    //     // exit(1);
+        // checked
+        // Show_graph(stdout,RA_bg);
+        SingleSourceGraph(RA_bg.mynodes[0], RA_bg, fun);
+        // cout << endl;
+        //Show_graph(stdout, RA_bg);
+        // exit(1);
 
-    //     //printL_func(debugStream, fun);
+        //printL_func(debugStream, fun);
 
-    //     // debugStream.close();
+        // debugStream.close();
 
-    //     Liveness(RA_bg.mynodes[0], RA_bg, fun->args);
-    //     // Show_Liveness(stdout, RA_bg);
-    //     //   exit(0);
+        Liveness(RA_bg.mynodes[0], RA_bg, fun->args);
+        // Show_Liveness(stdout, RA_bg);
+        //   exit(0);
 
-    //     // checked
-    //     Dominators(RA_bg);
-    //     // printf_domi();
-    //     //   exit(0);
+        // checked
+        Dominators(RA_bg);
+        // printf_domi();
+        //   exit(0);
 
-    //     // checked
-    //     tree_Dominators(RA_bg);
-    //     // printf_D_tree();
-    //     //   exit(0);
+        // checked
+        tree_Dominators(RA_bg);
+        // printf_D_tree();
+        //   exit(0);
 
-    //     // checked
-    //     // 默认0是入口block
-    //     computeDF(RA_bg, RA_bg.mynodes[0]);
-    //     // printf_DF();
-    //     //   debugStream.close();
-    //     //   exit(0);
+        // checked
+        // 默认0是入口block
+        computeDF(RA_bg, RA_bg.mynodes[0]);
+        // printf_DF();
+        //   debugStream.close();
+        //   exit(0);
 
-    //     // printL_func(debugStream, fun);
-    //     Place_phi_fu(RA_bg, fun);
-    //     //printL_func(debugStream, fun);
+        // printL_func(debugStream, fun);
+        Place_phi_fu(RA_bg, fun);
+        printL_func(debugStream, fun);
+        debugStream.close();
        
-    //     Rename(RA_bg, fun, debugStream);
+        Rename(RA_bg, fun, debugStream);
 
-    //     combine_addr(fun);
+        combine_addr(fun);
 
-    //     // printL_func(debugStream, fun);
+        // printL_func(debugStream, fun);
 
-    //     debugStream.close();
-    //     //cout << endl;
-    //     // exit(1);
-    // }
+        debugStream.close();
+        //cout << endl;
+        // exit(1);
+    }
     return prog;
 }
 
@@ -639,7 +640,11 @@ void Place_phi_fu(GRAPH::Graph<LLVMIR::L_block *> &bg, L_func *fun)
                     }
 
                     L_stm *phi = L_Phi(AS_Operand_Temp(a.first), phis);
-                    y->instrs.insert(y->instrs.begin(), phi);
+
+                    // 在第一条指令之后插入
+                    y->instrs.insert(++y->instrs.begin(), phi);
+
+                    //y->instrs.insert(y->instrs.begin(), phi);
 
                     // A_phi[y]=A_phi[y]∪{a}
                     A_phi[y].insert(a.first);
@@ -715,6 +720,7 @@ static list<AS_operand **> get_use_int_operand(LLVMIR::L_stm *stm)
 // run tests/public/expr_eval.tea tests/public/expr_eval.ll < tests/public/expr_eval.in
 // run tests/public/big_int_mul.tea tests/public/big_int_mul.ll
 // run tests/public/int_io.tea tests/public/int_io.ll < tests/public/int_io.in
+// run tests/public/brainfk.tea tests/public/brainfk.ll < tests/public/brainfk.in
 
 void ReplaceStm(Temp_temp *old, Temp_temp *new_temp, L_stm *stm)
 {

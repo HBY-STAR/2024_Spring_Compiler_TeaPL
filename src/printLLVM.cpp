@@ -787,7 +787,7 @@ void LLVMIR::printL_func(std::ostream &os,LLVMIR::L_func *func)
 
 void LLVMIR::printL_block(std::ostream &os,LLVMIR::L_block *block)
 {
-    os << block->label->name << ":\n";
+    //os << block->label->name << ":\n";
     for(const auto &ir : block->instrs)
     {
         printL_stm(os,ir);

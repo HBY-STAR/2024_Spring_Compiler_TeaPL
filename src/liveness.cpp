@@ -281,7 +281,10 @@ std::list<AS_operand **> get_use_operand(L_stm *stm)
     {
         for (auto &arg : stm->u.VOID_CALL->args)
         {
-            AS_operand_list.push_back(&arg);
+            if (arg->kind == OperandKind::TEMP && (arg->u.TEMP->type == TempType::INT_TEMP || (arg->u.TEMP->type == TempType::INT_PTR && arg->u.TEMP->len == 0)))
+            {
+                AS_operand_list.push_back(&arg);
+            }
         }
     }
     break;
