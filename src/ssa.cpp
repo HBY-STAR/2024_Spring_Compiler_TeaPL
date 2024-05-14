@@ -59,7 +59,16 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
 
         // exit(0);
 
+        
+
         auto RA_bg = Create_bg(fun->blocks);
+
+        if(fun->blocks.size() == 1)
+        {
+            Rename(RA_bg, fun, debugStream);
+             combine_addr(fun);
+            continue;
+        }
 
         // checked
         // Show_graph(stdout,RA_bg);
