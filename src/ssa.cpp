@@ -66,7 +66,8 @@ LLVMIR::L_prog *SSA(LLVMIR::L_prog *prog)
         if(fun->blocks.size() == 1)
         {
             Rename(RA_bg, fun, debugStream);
-             combine_addr(fun);
+            combine_addr(fun);
+            debugStream.close();
             continue;
         }
 
@@ -196,31 +197,14 @@ void mem2reg(LLVMIR::L_func *fun)
                         auto stm2 = *stm2_it;
                         if (stm2->type == L_StmKind::T_LOAD && stm2->u.LOAD->dst->kind == OperandKind::TEMP && stm2->u.LOAD->ptr->u.TEMP->num == temp->num)
                         {
-                            // if (temp2ASoper.find(stm2->u.LOAD->ptr->u.TEMP) != temp2ASoper.end())
-                            // {
-                            //     temp2ASoper[stm2->u.LOAD->dst->u.TEMP] = temp2ASoper[stm2->u.LOAD->ptr->u.TEMP];
-                            // }
-                            // else
-                            // {
                             temp2ASoper[stm2->u.LOAD->dst->u.TEMP->num] = AS_Operand_Temp(stm2->u.LOAD->ptr->u.TEMP);
-                            // }
-                            // 删除 LOAD 指令
+
                             //cout << "delete-load: " << stm2->u.LOAD->dst->u.TEMP->num << endl;
                             stm2_it = block2->instrs.erase(stm2_it);
                         }
                         else if (stm2->type == L_StmKind::T_STORE && stm2->u.STORE->src->kind == OperandKind::TEMP && stm2->u.STORE->ptr->u.TEMP->num == temp->num)
                         {
-                            // if (temp2ASoper.find(stm2->u.STORE->src->u.TEMP) != temp2ASoper.end())
-                            // {
-                            //     temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = temp2ASoper[stm2->u.STORE->src->u.TEMP];
-                            // }
-                            // else
-                            // {
-                            //temp2ASoper[stm2->u.STORE->ptr->u.TEMP->num] = AS_Operand_Temp(stm2->u.STORE->src->u.TEMP);
-                            // }
                             // 删除 STORE 指令
-                            // stm2_it = block2->instrs.erase(stm2_it);
-                            //cout << "delete-store: " << stm2->u.STORE->src->u.TEMP->num << endl;
                             auto move = L_Move(stm2->u.STORE->src, stm2->u.STORE->ptr);
                             stm2_it = block2->instrs.erase(stm2_it);
                             stm2_it = block2->instrs.insert(stm2_it, move);
@@ -228,14 +212,6 @@ void mem2reg(LLVMIR::L_func *fun)
                         else if (stm2->type == L_StmKind::T_STORE && stm2->u.STORE->src->kind == OperandKind::ICONST &&
                                  stm2->u.STORE->ptr->u.TEMP->num == temp->num)
                         {
-                            // if (temp2ASoper.find(stm2->u.STORE->src->u.TEMP) != temp2ASoper.end())
-                            // {
-                            //     temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = temp2ASoper[stm2->u.STORE->src->u.TEMP];
-                            // }
-                            // else
-                            // {
-                            //     temp2ASoper[stm2->u.STORE->ptr->u.TEMP] = stm2->u.STORE->src;
-                            // }
                             // STORE 替换为 MOVE
                             //cout << "delete-store: " << stm2->u.STORE->src->u.ICONST << endl;
                             auto move = L_Move(AS_Operand_Const(stm2->u.STORE->src->u.ICONST), AS_Operand_Temp(stm2->u.STORE->ptr->u.TEMP));
@@ -254,10 +230,6 @@ void mem2reg(LLVMIR::L_func *fun)
                 {
                     for (auto stm2 : block2->instrs)
                     {
-                        // if (stm2->type == L_StmKind::T_MOVE)
-                        // {
-                        //     continue;
-                        // }
                         auto AS_operand_list = get_all_AS_operand(stm2);
                         for (auto &AS_op : AS_operand_list)
                         {
@@ -409,9 +381,6 @@ void printf_D_tree()
     for (auto x : tree_dominators)
     {
         printf("%s :\n", x.first->label->name.c_str());
-        // if (x.second.pred)
-        //     printf("%s ", x.second.pred->label->name.c_str());
-        // printf("\n");
         for (auto t : x.second.succs)
         {
             printf("%s ", t->label->name.c_str());
@@ -434,7 +403,6 @@ void printf_DF()
     }
 }
 
-//   Todo
 void tree_Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
 {
     // 由支配节点集合构造支配树
@@ -485,7 +453,6 @@ void tree_Dominators(GRAPH::Graph<LLVMIR::L_block *> &bg)
     }
 }
 
-//   Todo
 void computeDF(GRAPH::Graph<LLVMIR::L_block *> &bg, GRAPH::Node<LLVMIR::L_block *> *r)
 {
     // 计算支配边界
