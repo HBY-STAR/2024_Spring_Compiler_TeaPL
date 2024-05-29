@@ -201,6 +201,15 @@ void LLVMIR::printL_stm(std::ostream &os,LLVMIR::L_stm *stm)
 {
     switch (stm->type)
     {
+    case L_StmKind::T_ZEXT:
+    {
+        os << "  ";
+        printL_oper(os,stm->u.ZEXT->dst);
+        os << " = zext i1 ";
+        printL_oper(os,stm->u.ZEXT->src);
+        os << " to i32";
+        break;
+    }
     case L_StmKind::T_ALLOCA:
     {
         if(stm->u.ALLOCA->dst->kind == OperandKind::TEMP)
@@ -353,6 +362,7 @@ void LLVMIR::printL_stm(std::ostream &os,LLVMIR::L_stm *stm)
     {
         os << "  br i1 ";
         printL_oper(os,stm->u.CJUMP->dst);
+        if(stm->u.CJUMP->true_label && stm->u.CJUMP->false_label)
         os << ", label %" << stm->u.CJUMP->true_label->name << ", label %" << stm->u.CJUMP->false_label->name << "\n";
         break;
     }
@@ -581,14 +591,14 @@ void LLVMIR::printL_stm(std::ostream &os,LLVMIR::L_stm *stm)
     }
     case L_StmKind::T_RETURN:
     {
-        if(stm->u.RET->ret == nullptr)
+        if(stm->u.RETURN->ret == nullptr)
         {
             os << "  ret void";
         }
         else
         {
             os << "  ret i32 ";
-            printL_oper(os,stm->u.RET->ret);
+            printL_oper(os,stm->u.RETURN->ret);
         }
         break;
     }
@@ -653,7 +663,8 @@ void LLVMIR::printL_stm(std::ostream &os,LLVMIR::L_stm *stm)
                 }
                 else
                 {
-                    assert(0);
+                    os << "i32 ";
+                    // assert(0);
                 }
             }
             printL_oper(os,v);
@@ -776,6 +787,7 @@ void LLVMIR::printL_func(std::ostream &os,LLVMIR::L_func *func)
 
 void LLVMIR::printL_block(std::ostream &os,LLVMIR::L_block *block)
 {
+    //os << block->label->name << ":\n";
     for(const auto &ir : block->instrs)
     {
         printL_stm(os,ir);
