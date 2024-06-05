@@ -52,6 +52,20 @@ int getMemLength(TempDef &members)
 void structLayoutInit(vector<L_def *> &defs)
 {
     // ToDo:计算结构体各个位置的偏移
+    for (auto def : defs)
+    {
+        if (def->kind == L_DefKind::SRT)
+        {
+            vector<int> offset;
+            int size = 0;
+            for (auto member : def->u.SRT->members)
+            {
+                offset.push_back(size);
+                size += getMemLength(member);
+            }
+            structLayout[def->u.SRT->name] = new StructDef(offset, size);
+        }
+    }
 }
 
 void set_stack(L_func &func)
@@ -395,6 +409,40 @@ void llvm2asmGlobal(vector<AS_global *> &globals, L_def &def)
     case L_DefKind::GLOBAL:
     {
         //ToDo
+        if(def.u.GLOBAL->def.kind == TempType::INT_TEMP)
+        {
+            int init = 0;
+            if(def.u.GLOBAL->init.size() == 0)
+            {
+                init = 0;
+            }
+            else
+            {
+                init = def.u.GLOBAL->init[0];
+            }
+            AS_global *global = new AS_global(new AS_label(def.u.GLOBAL->name), init, 1);
+            globals.push_back(global);
+        }
+        else if(def.u.GLOBAL->def.kind == TempType::INT_PTR)
+        {
+            AS_global *global = new AS_global(new AS_label(def.u.GLOBAL->name), 0, def.u.GLOBAL->def.len * INT_LENGTH);
+            globals.push_back(global);
+        }
+        else if(def.u.GLOBAL->def.kind == TempType::STRUCT_TEMP)
+        {
+            AS_global *global = new AS_global(new AS_label(def.u.GLOBAL->name), 0, structLayout[def.u.GLOBAL->def.structname]->size);
+            globals.push_back(global);
+        }
+        else if(def.u.GLOBAL->def.kind == TempType::STRUCT_PTR)
+        {
+            AS_global *global = new AS_global(new AS_label(def.u.GLOBAL->name), 0, def.u.GLOBAL->def.len * structLayout[def.u.GLOBAL->def.structname]->size);
+            globals.push_back(global);
+        }
+        else
+        {
+            assert(0);
+        }
+
         break;
     }
     case L_DefKind::FUNC:
