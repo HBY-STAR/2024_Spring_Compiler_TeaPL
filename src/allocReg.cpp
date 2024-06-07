@@ -384,8 +384,12 @@ void livenessAnalysis(std::list<InstructionNode *> &nodes, std::list<ASM::AS_stm
     ASM::AS_stm *subSpStm = ASM::AS_Binop(ASM::AS_binopkind::SUB_, sp, new ASM::AS_reg(ASM::IMM, spillOffset), sp);
     auto it = as_list.begin();
     it++;
+    while ((*it)->type != AS_stmkind::LABEL)
+    {
+        ++it;
+    }
     it++;
-    it++;
+    
     as_list.insert(it, subSpStm);
 
     // Insert ldr and str instructions for spilled registers

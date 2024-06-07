@@ -15,9 +15,6 @@ using namespace std;
 using namespace LLVMIR;
 using namespace ASM;
 
-// gdb compiler
-// run tests/public/BFS.tea tests/public/BFS.ll < tests/public/BFS.in
-
 #define INSERT1() printf("%s:%d\n", __FILE__, __LINE__);
 static int stack_frame;
 static bool alloc_frame = false;
@@ -271,7 +268,6 @@ void llvm2asmBinop(list<AS_stm *> &as_list, L_stm *binop_stm)
     }
 }
 
-
 void llvm2asmLoad(list<AS_stm *> &as_list, L_stm *load_stm)
 {
     if (load_stm->u.LOAD->ptr->kind == OperandKind::TEMP)
@@ -280,7 +276,6 @@ void llvm2asmLoad(list<AS_stm *> &as_list, L_stm *load_stm)
         // new AS_address(new AS_reg(AS_type::Xn, load_stm->u.LOAD->ptr->u.TEMP->num), 0)
         AS_reg *ptr = new AS_reg(AS_type::ADR, new AS_address(new AS_reg(AS_type::Xn, load_stm->u.LOAD->ptr->u.TEMP->num), 0));
         as_list.push_back(AS_Ldr(dst, ptr));
-        
     }
     else if (load_stm->u.LOAD->ptr->kind == OperandKind::NAME)
     {
@@ -321,7 +316,7 @@ void llvm2asmStore(list<AS_stm *> &as_list, L_stm *store_stm)
     if (store_stm->u.STORE->ptr->kind == OperandKind::TEMP)
     {
         // new AS_address(new AS_reg(AS_type::Xn, store_stm->u.STORE->ptr->u.TEMP->num), 0)
-        AS_reg *ptr = new AS_reg(AS_type::ADR,  new AS_address(new AS_reg(AS_type::Xn, store_stm->u.STORE->ptr->u.TEMP->num), 0));
+        AS_reg *ptr = new AS_reg(AS_type::ADR, new AS_address(new AS_reg(AS_type::Xn, store_stm->u.STORE->ptr->u.TEMP->num), 0));
         as_list.push_back(AS_Str(src, ptr));
     }
     else if (store_stm->u.STORE->ptr->kind == OperandKind::NAME)
@@ -337,7 +332,7 @@ void llvm2asmStore(list<AS_stm *> &as_list, L_stm *store_stm)
         as_list.push_back(AS_Adr(new AS_label(global_name), tmp_reg));
 
         // str指令
-        AS_reg* ptr = new AS_reg(AS_type::ADR, new AS_address(tmp_reg, 0));
+        AS_reg *ptr = new AS_reg(AS_type::ADR, new AS_address(tmp_reg, 0));
         as_list.push_back(AS_Str(src, ptr));
     }
     else
@@ -409,8 +404,19 @@ void llvm2asmGep(list<AS_stm *> &as_list, L_stm *gep_stm)
 {
     // 获取base_ptr和new_ptr的寄存器
     AS_reg *base_ptr = nullptr;
-    AS_reg *new_ptr = new AS_reg(AS_type::Xn, gep_stm->u.GEP->new_ptr->u.TEMP->num);
-    AS_reg *index = new AS_reg(AS_type::Xn, gep_stm->u.GEP->index->u.TEMP->num);
+    AS_reg *new_ptr = ASoperand2ASreg(gep_stm->u.GEP->new_ptr);
+
+    AS_reg *index;
+
+    if (gep_stm->u.GEP->index->kind == OperandKind::ICONST)
+    {
+        index = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
+        as_list.push_back(AS_Mov(ASoperand2ASreg(gep_stm->u.GEP->index), index));
+    }
+    else
+    {
+        index = ASoperand2ASreg(gep_stm->u.GEP->index);
+    }
 
     int element_size = 8;
 
@@ -456,17 +462,18 @@ void llvm2asmGep(list<AS_stm *> &as_list, L_stm *gep_stm)
         // 全局变量，使用adr指令获得base_ptr
         base_ptr = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
         AS_reg *offset = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
+        AS_reg *compute = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
 
         // mov element size to element_size_reg
         as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, element_size), offset));
         // multiply index by element size
-        as_list.push_back(AS_Binop(AS_binopkind::MUL_, index, offset, index));
+        as_list.push_back(AS_Binop(AS_binopkind::MUL_, offset, index, compute));
 
         // adrp指令
         as_list.push_back(AS_Adr(new AS_label(gep_stm->u.GEP->base_ptr->u.NAME->name->name), base_ptr));
 
         // add base_ptr and offset to get new_ptr
-        as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, index, new_ptr));
+        as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, compute, new_ptr));
     }
     else
     {

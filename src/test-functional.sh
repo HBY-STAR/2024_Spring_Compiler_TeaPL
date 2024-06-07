@@ -24,9 +24,9 @@ test_single() {
 	fi
 	ARCH=$(uname -m)
 	if [ -f $func_testcase_dir/$test_name.in ]; then
-		qemu-aarch64 ./output/$test_name < $func_testcase_dir/$test_name.in > output/$test_name.out
+		qemu-aarch64 -L /usr/aarch64-linux-gnu ./output/$test_name < $func_testcase_dir/$test_name.in > output/$test_name.out
 	else
-		qemu-aarch64 ./output/$test_name > output/$test_name.out
+		qemu-aarch64 -L /usr/aarch64-linux-gnu ./output/$test_name > output/$test_name.out
 	fi
 	echo -e $? >> ./output/$test_name.out
 	diff -Bb ./output/$test_name.out $func_testcase_dir/$test_name.out > /dev/null 2>/dev/null
