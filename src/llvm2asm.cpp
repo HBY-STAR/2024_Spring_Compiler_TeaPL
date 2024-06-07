@@ -436,8 +436,9 @@ void llvm2asmGep(list<AS_stm *> &as_list, L_stm *gep_stm)
             AS_reg *offset = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
             AS_reg *compute = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
 
-            if (gep_stm->u.GEP->base_ptr->u.TEMP->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.TEMP->len > 1)
+            if (gep_stm->u.GEP->base_ptr->u.TEMP->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.TEMP->len != 0)
             {
+                // cout << "struct ptr" << endl;
                 // 结构体指针，需要乘以结构体大小
                 element_size = structLayout[gep_stm->u.GEP->base_ptr->u.TEMP->structname]->size;
                 // mov element size to element_size_reg
@@ -448,10 +449,12 @@ void llvm2asmGep(list<AS_stm *> &as_list, L_stm *gep_stm)
                 // add base_ptr and offset to get new_ptr
                 as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, compute, new_ptr));
             }
-            else if (gep_stm->u.GEP->base_ptr->u.TEMP->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.TEMP->len == 1)
+            else if (gep_stm->u.GEP->base_ptr->u.TEMP->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.TEMP->len == 0)
             {
+                // cout << "struct ptr 0" << endl;
+                // printL_stm(cout, gep_stm);
                 // mov element size to element_size_reg
-                as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, structLayout[gep_stm->u.GEP->base_ptr->u.TEMP->structname]->offset[gep_stm->u.GEP->index->u.ICONST]), offset));
+                as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, structLayout[gep_stm->u.GEP->base_ptr->u.TEMP->structname]->offset[gep_stm->u.GEP->index->u.ICONST]), compute));
 
                 // add base_ptr and offset to get new_ptr
                 as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, compute, new_ptr));
@@ -478,7 +481,7 @@ void llvm2asmGep(list<AS_stm *> &as_list, L_stm *gep_stm)
             AS_reg *offset = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
             AS_reg *compute = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
 
-            if (gep_stm->u.GEP->base_ptr->u.TEMP->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.TEMP->len > 1)
+            if (gep_stm->u.GEP->base_ptr->u.TEMP->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.TEMP->len != 0)
             {
                 // 结构体指针，需要乘以结构体大小
                 element_size = structLayout[gep_stm->u.GEP->base_ptr->u.TEMP->structname]->size;
@@ -490,10 +493,10 @@ void llvm2asmGep(list<AS_stm *> &as_list, L_stm *gep_stm)
                 // add base_ptr and offset to get new_ptr
                 as_list.push_back(AS_Binop(AS_binopkind::ADD_, base, compute, new_ptr));
             }
-            else if (gep_stm->u.GEP->base_ptr->u.TEMP->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.TEMP->len == 1)
+            else if (gep_stm->u.GEP->base_ptr->u.TEMP->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.TEMP->len == 0)
             {
                 // mov element size to element_size_reg
-                as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, structLayout[gep_stm->u.GEP->base_ptr->u.TEMP->structname]->offset[gep_stm->u.GEP->index->u.ICONST]), offset));
+                as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, structLayout[gep_stm->u.GEP->base_ptr->u.TEMP->structname]->offset[gep_stm->u.GEP->index->u.ICONST]), compute));
 
                 // add base_ptr and offset to get new_ptr
                 as_list.push_back(AS_Binop(AS_binopkind::ADD_, base, compute, new_ptr));
@@ -517,7 +520,7 @@ void llvm2asmGep(list<AS_stm *> &as_list, L_stm *gep_stm)
         AS_reg *offset = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
         AS_reg *compute = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
 
-        if (gep_stm->u.GEP->base_ptr->u.NAME->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.NAME->len > 1)
+        if (gep_stm->u.GEP->base_ptr->u.NAME->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.NAME->len > 0)
         {
             // 结构体指针，需要乘以结构体大小
             element_size = structLayout[gep_stm->u.GEP->base_ptr->u.NAME->structname]->size;
@@ -532,7 +535,7 @@ void llvm2asmGep(list<AS_stm *> &as_list, L_stm *gep_stm)
             // add base_ptr and offset to get new_ptr
             as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, compute, new_ptr));
         }
-        else if (gep_stm->u.GEP->base_ptr->u.NAME->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.NAME->len == 1)
+        else if (gep_stm->u.GEP->base_ptr->u.NAME->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.NAME->len == 0)
         {
             // mov element size to element_size_reg
             as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, structLayout[gep_stm->u.GEP->base_ptr->u.NAME->structname]->offset[gep_stm->u.GEP->index->u.ICONST]), offset));

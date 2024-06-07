@@ -4,8 +4,8 @@ run tests/public/big_int_mul.tea tests/public/big_int_mul.ll
 run tests/public/dijkstra.tea tests/public/dijkstra.ll < tests/public/dijkstra.in
 
 // a.tea run
-./compiler tests/public/a.tea
-aarch64-linux-gnu-gcc -g -c tests/public/a.S -o output/a.o
+./compiler tests/my/a.tea
+aarch64-linux-gnu-gcc -g -c tests/my/a.S -o output/a.o
 aarch64-linux-gnu-gcc -g output/a.o sylib/sylib.o -o output/a
 qemu-aarch64 -L /usr/aarch64-linux-gnu ./output/a > output/a.out
 
