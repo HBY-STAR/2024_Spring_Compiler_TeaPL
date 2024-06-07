@@ -40,6 +40,8 @@ int getMemLength(TempDef &members)
         return INT_LENGTH;
         break;
     case TempType::STRUCT_PTR:
+        if (members.len == 0)
+            return structLayout[members.structname]->size;
         return structLayout[members.structname]->size * members.len;
         break;
     case TempType::STRUCT_TEMP:
@@ -61,6 +63,8 @@ int getTempLength(Temp_temp *temp)
         return INT_LENGTH;
         break;
     case TempType::STRUCT_PTR:
+        if (temp->len == 0)
+            return structLayout[temp->structname]->size;
         return structLayout[temp->structname]->size * temp->len;
         break;
     case TempType::STRUCT_TEMP:
@@ -119,13 +123,9 @@ void set_stack(L_func &func)
 void new_frame(list<AS_stm *> &as_list, L_func &func)
 {
     // ToDo:在刚刚进入函数的时候，需要调整sp，并将函数参数移入虚拟寄存器
-
-    // 保存当前的帧指针（fp）
-    // AS_reg *fp = new AS_reg(AS_type::Xn, XXn1);
-    // as_list.emplace_back(AS_Mov(new AS_reg(AS_type::IMM, 0), fp));
-
-    // // 调整栈指针 (sp)，为栈帧分配空间
-    // as_list.emplace_back(AS_Binop(AS_binopkind::SUB_, sp, fp, sp));
+    // as_list.emplace_back(AS_Stp(new AS_reg(AS_type::Xn, XnFP), new AS_reg(AS_type::Xn, XXnl), sp, -16));
+    // as_list.emplace_back(AS_Mov(sp, new AS_reg(AS_type::Xn, XnFP)));
+    as_list.emplace_back(AS_Binop(AS_binopkind::SUB_, sp, new AS_reg(AS_type::IMM, stack_frame), sp));
 
     // 将函数参数移入虚拟寄存器
     for (size_t i = 0; i < func.args.size(); ++i)
@@ -145,16 +145,17 @@ void new_frame(list<AS_stm *> &as_list, L_func &func)
             int offset = (i - 8) * INT_LENGTH; // 每个参数占用一个整型的空间
             AS_address *src_addr = new AS_address(sp, offset);
             as_list.emplace_back(AS_Ldr(dest_reg, new AS_reg(AS_type::ADR, src_addr)));
-        }
 
-        // 记录参数在栈帧中的偏移
-        fpOffset[arg->num] = new AS_address(sp, i * INT_LENGTH);
+            // 记录参数在栈帧中的偏移
+            fpOffset[arg->num] = new AS_address(sp, i * INT_LENGTH);
+        }
     }
 }
 
 void free_frame(list<AS_stm *> &as_list)
 {
     as_list.emplace_back(AS_Mov(new AS_reg(AS_type::Xn, XnFP), sp));
+    // as_list.emplace_back(AS_Ldp(new AS_reg(AS_type::Xn, XnFP), new AS_reg(AS_type::Xn, XXnl), sp, 16));
 }
 
 AS_reg *ASoperand2ASreg(AS_operand *operand)
@@ -413,9 +414,13 @@ void llvm2asmGep(list<AS_stm *> &as_list, L_stm *gep_stm)
         index = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
         as_list.push_back(AS_Mov(ASoperand2ASreg(gep_stm->u.GEP->index), index));
     }
-    else
+    else if (gep_stm->u.GEP->index->kind == OperandKind::TEMP)
     {
         index = ASoperand2ASreg(gep_stm->u.GEP->index);
+    }
+    else
+    {
+        assert(0);
     }
 
     int element_size = 8;
@@ -428,33 +433,81 @@ void llvm2asmGep(list<AS_stm *> &as_list, L_stm *gep_stm)
             base_ptr = new AS_reg(AS_type::Xn, gep_stm->u.GEP->base_ptr->u.TEMP->num);
 
             // 计算偏移并得到new_ptr
-            AS_reg *element_size_reg = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
             AS_reg *offset = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
+            AS_reg *compute = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
 
-            // mov element size to element_size_reg
-            as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, element_size), element_size_reg));
-            // multiply index by element size
-            as_list.push_back(AS_Binop(AS_binopkind::MUL_, offset, index, element_size_reg));
-            // add base_ptr and offset to get new_ptr
-            as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, offset, new_ptr));
+            if (gep_stm->u.GEP->base_ptr->u.TEMP->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.TEMP->len > 1)
+            {
+                // 结构体指针，需要乘以结构体大小
+                element_size = structLayout[gep_stm->u.GEP->base_ptr->u.TEMP->structname]->size;
+                // mov element size to element_size_reg
+                as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, element_size), offset));
+                // multiply index by element size
+                as_list.push_back(AS_Binop(AS_binopkind::MUL_, offset, index, compute));
+
+                // add base_ptr and offset to get new_ptr
+                as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, compute, new_ptr));
+            }
+            else if (gep_stm->u.GEP->base_ptr->u.TEMP->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.TEMP->len == 1)
+            {
+                // mov element size to element_size_reg
+                as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, structLayout[gep_stm->u.GEP->base_ptr->u.TEMP->structname]->offset[gep_stm->u.GEP->index->u.ICONST]), offset));
+
+                // add base_ptr and offset to get new_ptr
+                as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, compute, new_ptr));
+            }
+            else
+            {
+                // mov element size to element_size_reg
+                as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, element_size), offset));
+                // multiply index by element size
+                as_list.push_back(AS_Binop(AS_binopkind::MUL_, offset, index, compute));
+
+                // add base_ptr and offset to get new_ptr
+                as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, compute, new_ptr));
+            }
         }
         else
         {
             // 局部变量，使用fpOffset计算base_ptr
             auto it = fpOffset.find(gep_stm->u.GEP->base_ptr->u.TEMP->num);
 
-            base_ptr = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
+            AS_reg *base = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
+            as_list.push_back(AS_Binop(AS_binopkind::ADD_, new AS_reg(AS_type::Xn, XnFP), new AS_reg(AS_type::IMM, it->second->imm), base));
+
             AS_reg *offset = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
+            AS_reg *compute = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
 
-            // 计算局部变量的偏移量并加载到base_ptr
-            as_list.push_back(AS_Binop(AS_binopkind::ADD_, new AS_reg(AS_type::Xn, XnFP), new AS_reg(AS_type::Xn, it->second), base_ptr));
+            if (gep_stm->u.GEP->base_ptr->u.TEMP->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.TEMP->len > 1)
+            {
+                // 结构体指针，需要乘以结构体大小
+                element_size = structLayout[gep_stm->u.GEP->base_ptr->u.TEMP->structname]->size;
+                // mov element size to element_size_reg
+                as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, element_size), offset));
+                // multiply index by element size
+                as_list.push_back(AS_Binop(AS_binopkind::MUL_, offset, index, compute));
 
-            // mov element size to element_size_reg
-            as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, element_size), offset));
-            // multiply index by element size
-            as_list.push_back(AS_Binop(AS_binopkind::MUL_, index, offset, index));
-            // add base_ptr and offset to get new_ptr
-            as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, index, new_ptr));
+                // add base_ptr and offset to get new_ptr
+                as_list.push_back(AS_Binop(AS_binopkind::ADD_, base, compute, new_ptr));
+            }
+            else if (gep_stm->u.GEP->base_ptr->u.TEMP->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.TEMP->len == 1)
+            {
+                // mov element size to element_size_reg
+                as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, structLayout[gep_stm->u.GEP->base_ptr->u.TEMP->structname]->offset[gep_stm->u.GEP->index->u.ICONST]), offset));
+
+                // add base_ptr and offset to get new_ptr
+                as_list.push_back(AS_Binop(AS_binopkind::ADD_, base, compute, new_ptr));
+            }
+            else
+            {
+                // mov element size to element_size_reg
+                as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, element_size), offset));
+                // multiply index by element size
+                as_list.push_back(AS_Binop(AS_binopkind::MUL_, offset, index, compute));
+
+                // add base_ptr and offset to get new_ptr
+                as_list.push_back(AS_Binop(AS_binopkind::ADD_, base, compute, new_ptr));
+            }
         }
     }
     else if (gep_stm->u.GEP->base_ptr->kind == OperandKind::NAME)
@@ -464,16 +517,45 @@ void llvm2asmGep(list<AS_stm *> &as_list, L_stm *gep_stm)
         AS_reg *offset = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
         AS_reg *compute = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
 
-        // mov element size to element_size_reg
-        as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, element_size), offset));
-        // multiply index by element size
-        as_list.push_back(AS_Binop(AS_binopkind::MUL_, offset, index, compute));
+        if (gep_stm->u.GEP->base_ptr->u.NAME->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.NAME->len > 1)
+        {
+            // 结构体指针，需要乘以结构体大小
+            element_size = structLayout[gep_stm->u.GEP->base_ptr->u.NAME->structname]->size;
+            // mov element size to element_size_reg
+            as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, element_size), offset));
+            // multiply index by element size
+            as_list.push_back(AS_Binop(AS_binopkind::MUL_, offset, index, compute));
 
-        // adrp指令
-        as_list.push_back(AS_Adr(new AS_label(gep_stm->u.GEP->base_ptr->u.NAME->name->name), base_ptr));
+            // adrp指令
+            as_list.push_back(AS_Adr(new AS_label(gep_stm->u.GEP->base_ptr->u.NAME->name->name), base_ptr));
 
-        // add base_ptr and offset to get new_ptr
-        as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, compute, new_ptr));
+            // add base_ptr and offset to get new_ptr
+            as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, compute, new_ptr));
+        }
+        else if (gep_stm->u.GEP->base_ptr->u.NAME->type == TempType::STRUCT_PTR && gep_stm->u.GEP->base_ptr->u.NAME->len == 1)
+        {
+            // mov element size to element_size_reg
+            as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, structLayout[gep_stm->u.GEP->base_ptr->u.NAME->structname]->offset[gep_stm->u.GEP->index->u.ICONST]), offset));
+
+            // adrp指令
+            as_list.push_back(AS_Adr(new AS_label(gep_stm->u.GEP->base_ptr->u.NAME->name->name), base_ptr));
+
+            // add base_ptr and offset to get new_ptr
+            as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, compute, new_ptr));
+        }
+        else
+        {
+            // mov element size to element_size_reg
+            as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, element_size), offset));
+            // multiply index by element size
+            as_list.push_back(AS_Binop(AS_binopkind::MUL_, offset, index, compute));
+
+            // adrp指令
+            as_list.push_back(AS_Adr(new AS_label(gep_stm->u.GEP->base_ptr->u.NAME->name->name), base_ptr));
+
+            // add base_ptr and offset to get new_ptr
+            as_list.push_back(AS_Binop(AS_binopkind::ADD_, base_ptr, compute, new_ptr));
+        }
     }
     else
     {
@@ -611,41 +693,41 @@ void load_register(list<AS_stm *> &as_list)
     int add = 0;
     for (auto it = allocateRegs.rbegin(); it != allocateRegs.rend(); ++it)
     {
-        // 获取当前元素
-        int first = *it;
-        ++it; // 移动到下一个元素
-
-        // 检查是否有下一个元素
-        if (it != allocateRegs.rend())
+        assert(allocateRegs.size() % 2 == 1);
+        if (it == allocateRegs.rbegin())
         {
-            int second = *it;
-            as_list.push_back(AS_Ldp(new AS_reg(AS_type::Xn, first), new AS_reg(AS_type::Xn, second), sp, 2 * INT_LENGTH));
-            add += 2 * INT_LENGTH;
+            as_list.push_back(AS_Ldr(new AS_reg(AS_type::Xn, *it), sp, INT_LENGTH));
+            add += INT_LENGTH;
         }
         else
         {
-            // 如果`set`中的元素个数是奇数，最后一个元素将单独处理
-            as_list.push_back(AS_Ldr(new AS_reg(AS_type::Xn, first), sp, INT_LENGTH));
-            add += INT_LENGTH;
-            break;
+            int first = *it;
+            ++it; // 移动到下一个元素
+            int second = *it;
+            as_list.push_back(AS_Ldp(new AS_reg(AS_type::Xn, second), new AS_reg(AS_type::Xn, first), sp, 2 * INT_LENGTH));
+            add += 2 * INT_LENGTH;
         }
     }
 }
 
 void getCalls(AS_reg *&op_reg, AS_operand *as_operand, list<AS_stm *> &as_list)
 {
+    int element_size = 8;
     // ToDo:一个工具函数，应该实现将局部变量（这里应该只会出现数组、结构体地址）、全局变量、临时变量加载到目标op_reg等待使用
     if (as_operand->kind == OperandKind::TEMP)
     {
+        // 临时变量
         if (fpOffset.find(as_operand->u.TEMP->num) == fpOffset.end())
         {
             op_reg = new AS_reg(AS_type::Xn, as_operand->u.TEMP->num);
         }
+        // 局部变量
         else
         {
             auto it = fpOffset.find(as_operand->u.TEMP->num);
+
             op_reg = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
-            as_list.push_back(AS_Ldr(op_reg, new AS_reg(AS_type::ADR, it->second)));
+            as_list.push_back(AS_Binop(AS_binopkind::ADD_, new AS_reg(AS_type::Xn, XnFP), new AS_reg(AS_type::IMM, it->second->imm), op_reg));
         }
     }
     else if (as_operand->kind == OperandKind::NAME)
