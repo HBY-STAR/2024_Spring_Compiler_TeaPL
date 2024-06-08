@@ -170,7 +170,7 @@ void new_frame(list<AS_stm *> &as_list, L_func &func)
         {
             // 从堆栈中获取参数
             int offset = (i - 8) * INT_LENGTH; // 每个参数占用一个整型的空间
-            AS_address *src_addr = new AS_address(sp, offset);
+            AS_address *src_addr = new AS_address(new AS_reg(AS_type::Xn, XnFP), offset);
             as_list.emplace_back(AS_Ldr(new AS_reg(AS_type::Xn, dest_reg->u.offset), new AS_reg(AS_type::ADR, src_addr)));
 
             // 记录参数在栈帧中的偏移
