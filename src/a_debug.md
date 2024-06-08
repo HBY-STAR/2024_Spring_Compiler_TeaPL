@@ -13,7 +13,10 @@ qemu-aarch64 -L /usr/aarch64-linux-gnu ./output/a > output/a.out
 qemu-aarch64 -L /usr/aarch64-linux-gnu -g 1234 ./output/a > output/a.out
 gdb-multiarch ./output/a
 target remote localhost:1234
-
+break /home/hby/compiler_project/src/tests/my/a.S:1300
+continue
+x/10i $pc
+info registers x9
 
 
 ls /usr/aarch64-linux-gnu/lib/ld-linux-aarch64.so.1
@@ -30,3 +33,7 @@ another terminal
 gdb-multiarch ./output/BFS
 target remote localhost:1234
 run /output/BFS < tests/public/BFS.in > output/BFS.out
+
+
+
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2

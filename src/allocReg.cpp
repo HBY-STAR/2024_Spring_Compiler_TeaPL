@@ -23,6 +23,14 @@ void getAllRegs(AS_stm *stm, vector<AS_reg *> &defs, vector<AS_reg *> &uses)
         getDefReg(stm->u.MOV->dst, defs);
         getUseReg(stm->u.MOV->src, uses);
         break;
+    case AS_stmkind::MOVZ:
+        getDefReg(stm->u.MOVZ->dst, defs);
+        getUseReg(stm->u.MOVZ->src, uses);
+        break;
+        case AS_stmkind::MOVK:
+        getDefReg(stm->u.MOVK->dst, defs);
+        getUseReg(stm->u.MOVK->src, uses);
+        break;
     case AS_stmkind::LDR:
         getDefReg(stm->u.LDR->dst, defs);
         getUseReg(stm->u.LDR->ptr, uses);
@@ -423,6 +431,12 @@ void livenessAnalysis(std::list<InstructionNode *> &nodes, std::list<ASM::AS_stm
                         reg->u.offset = spillReg.first;
                         break;
                     }
+                }
+
+                if(reg->u.offset != XXn1 && reg->u.offset != XXn2 && reg->u.offset != XXn3 && reg->u.offset != XXn4)
+                {
+                    cout << "Error: spill register not found" << endl;
+                    exit(1);
                 }
 
                 ASM::AS_reg *sp = new ASM::AS_reg(ASM::SP, 0);
