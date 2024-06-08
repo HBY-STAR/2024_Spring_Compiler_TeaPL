@@ -391,6 +391,13 @@ void livenessAnalysis(std::list<InstructionNode *> &nodes, std::list<ASM::AS_stm
 
     as_list.insert(it, subSpStm);
 
+    // record spill registers
+    std::map<int, bool> spillRegs;
+    spillRegs.insert({XXn1, false});
+    spillRegs.insert({XXn2, false});
+    spillRegs.insert({XXn3, false});
+    spillRegs.insert({XXn4, false});
+
     // Insert ldr and str instructions for spilled registers
     for (auto it = as_list.begin(); it != as_list.end(); ++it)
     {
@@ -399,29 +406,25 @@ void livenessAnalysis(std::list<InstructionNode *> &nodes, std::list<ASM::AS_stm
         std::vector<ASM::AS_reg *> uses;
         getAllRegs(stm, defs, uses);
 
-        // Insert str for defs
-        for (auto &reg : defs)
-        {
-            if (spillOffsets.find(reg->u.offset) != spillOffsets.end())
-            {
-                int offset = spillOffsets[reg->u.offset];
-                reg->u.offset = XXn1;
-
-                // Adjust stack pointer at function exit
-                it++;
-                ASM::AS_address *address = new ASM::AS_address(sp, offset);
-                ASM::AS_stm *strStm = ASM::AS_Str(new ASM::AS_reg(ASM::Xn, XXn1), new ASM::AS_reg(ASM::ADR, address));
-                it = as_list.insert(it, strStm);
-            }
-        }
-
         // Insert ldr for uses
         for (auto &reg : uses)
         {
             if (spillOffsets.find(reg->u.offset) != spillOffsets.end())
             {
                 int offset = spillOffsets[reg->u.offset];
-                reg->u.offset = XXn1;
+
+                // Select spill register
+                for(auto spillReg : spillRegs)
+                {
+                    if (!spillReg.second)
+                    {
+                        spillRegs[spillReg.first] = true;
+                        //cout << "Select spill register: " << spillReg.first << endl;
+                        reg->u.offset = spillReg.first;
+                        break;
+                    }
+                }
+
                 ASM::AS_reg *sp = new ASM::AS_reg(ASM::SP, 0);
                 ASM::AS_address *address = new ASM::AS_address(sp, offset);
                 ASM::AS_stm *ldrStm = ASM::AS_Ldr(new ASM::AS_reg(ASM::Xn, reg->u.offset), new ASM::AS_reg(ASM::ADR, address));
@@ -429,6 +432,37 @@ void livenessAnalysis(std::list<InstructionNode *> &nodes, std::list<ASM::AS_stm
                 ++it;
             }
         }
+
+        // Insert str for defs
+        for (auto &reg : defs)
+        {
+            if (spillOffsets.find(reg->u.offset) != spillOffsets.end())
+            {
+                int offset = spillOffsets[reg->u.offset];
+
+                // Select spill register
+                for(auto spillReg : spillRegs)
+                {
+                    if (!spillReg.second)
+                    {
+                        spillRegs[spillReg.first] = true;
+                        reg->u.offset = spillReg.first;
+                        break;
+                    }
+                }
+            
+                // Adjust stack pointer at function exit
+                it++;
+                ASM::AS_address *address = new ASM::AS_address(sp, offset);
+                ASM::AS_stm *strStm = ASM::AS_Str(new ASM::AS_reg(ASM::Xn, reg->u.offset), new ASM::AS_reg(ASM::ADR, address));
+                it = as_list.insert(it, strStm);
+            }
+        }
+
+        spillRegs[XXn1] = false;
+        spillRegs[XXn2] = false;
+        spillRegs[XXn3] = false;
+        spillRegs[XXn4] = false;
     }
 
     // Update register mapping in the assembly code

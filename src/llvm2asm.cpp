@@ -18,6 +18,8 @@ using namespace ASM;
 #define INSERT1() printf("%s:%d\n", __FILE__, __LINE__);
 static int stack_frame;
 static bool alloc_frame = false;
+const int IMM_MAX = 4095;
+const int RET_MAX = 255;
 struct StructDef
 {
     std::vector<int> offset;
@@ -174,96 +176,66 @@ AS_reg *ASoperand2ASreg(AS_operand *operand)
     }
 }
 
+AS_reg *ASoperandMov(AS_operand *operand, list<AS_stm *> &as_list)
+{
+    if (operand->kind == OperandKind::ICONST)
+    {
+        AS_reg *reg = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
+        if (operand->u.ICONST > IMM_MAX)
+        {
+            as_list.push_back(AS_Movz(new AS_reg(AS_type::IMM, (operand->u.ICONST >> 16) & 0xffff), reg));
+            as_list.push_back(AS_Movk(new AS_reg(AS_type::IMM, operand->u.ICONST & 0xffff), reg));
+        }
+        else
+        {
+            as_list.push_back(AS_Mov(new AS_reg(AS_type::IMM, operand->u.ICONST), reg));
+        }
+        return reg;
+    }
+    else
+    {
+        return new AS_reg(AS_type::Xn, operand->u.TEMP->num);
+    }
+}
+
 void llvm2asmBinop(list<AS_stm *> &as_list, L_stm *binop_stm)
 {
     bool isLeftImm = false;
     bool isRightImm = false;
-    if (binop_stm->u.BINOP->left->kind == OperandKind::ICONST)
-    {
-        isLeftImm = true;
-    }
-    if (binop_stm->u.BINOP->right->kind == OperandKind::ICONST)
-    {
-        isRightImm = true;
-    }
 
-    AS_reg *left = ASoperand2ASreg(binop_stm->u.BINOP->left);
-    AS_reg *right = ASoperand2ASreg(binop_stm->u.BINOP->right);
+    AS_reg *left = ASoperandMov(binop_stm->u.BINOP->left, as_list);
+    AS_reg *right = ASoperandMov(binop_stm->u.BINOP->right, as_list);
+
     AS_reg *dst = ASoperand2ASreg(binop_stm->u.BINOP->dst);
+    
     switch (binop_stm->u.BINOP->op)
     {
     case L_binopKind::T_plus:
     {
-        if (isLeftImm)
-        {
-            as_list.push_back(AS_Mov(left, dst));
-            as_list.push_back(AS_Binop(AS_binopkind::ADD_, dst, right, dst));
-        }
-        else
-        {
-            as_list.push_back(AS_Binop(AS_binopkind::ADD_, left, right, dst));
-        }
+
+        as_list.push_back(AS_Binop(AS_binopkind::ADD_, left, right, dst));
+
         break;
     }
     case L_binopKind::T_minus:
     {
-        if (isLeftImm)
-        {
-            as_list.push_back(AS_Mov(left, dst));
-            as_list.push_back(AS_Binop(AS_binopkind::SUB_, dst, right, dst));
-        }
-        else
-        {
-            as_list.push_back(AS_Binop(AS_binopkind::SUB_, left, right, dst));
-        }
+
+        as_list.push_back(AS_Binop(AS_binopkind::SUB_, left, right, dst));
+
         break;
     }
     case L_binopKind::T_mul:
     {
-        if (isLeftImm && isRightImm)
-        {
-            assert(0);
-        }
-        else if (isLeftImm)
-        {
-            AS_reg *tmp = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
-            as_list.push_back(AS_Mov(left, tmp));
-            as_list.push_back(AS_Binop(AS_binopkind::MUL_, tmp, right, dst));
-        }
-        else if (isRightImm)
-        {
-            AS_reg *tmp = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
-            as_list.push_back(AS_Mov(right, tmp));
-            as_list.push_back(AS_Binop(AS_binopkind::MUL_, left, tmp, dst));
-        }
-        else
-        {
-            as_list.push_back(AS_Binop(AS_binopkind::MUL_, left, right, dst));
-        }
+
+        as_list.push_back(AS_Binop(AS_binopkind::MUL_, left, right, dst));
+
         break;
     }
     case L_binopKind::T_div:
     {
-        if (isLeftImm && isRightImm)
-        {
-            assert(0);
-        }
-        else if (isLeftImm)
-        {
-            AS_reg *tmp = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
-            as_list.push_back(AS_Mov(left, tmp));
-            as_list.push_back(AS_Binop(AS_binopkind::SDIV_, tmp, right, dst));
-        }
-        else if (isRightImm)
-        {
-            AS_reg *tmp = new AS_reg(AS_type::Xn, Temp_newtemp_int()->num);
-            as_list.push_back(AS_Mov(right, tmp));
-            as_list.push_back(AS_Binop(AS_binopkind::SDIV_, left, tmp, dst));
-        }
-        else
-        {
-            as_list.push_back(AS_Binop(AS_binopkind::SDIV_, left, right, dst));
-        }
+
+        as_list.push_back(AS_Binop(AS_binopkind::SDIV_, left, right, dst));
+
         break;
     }
     }
@@ -365,8 +337,8 @@ ASM::AS_relopkind convertRelopKind(LLVMIR::L_relopKind lRelop)
 
 void llvm2asmCmp(list<AS_stm *> &as_list, L_stm *cmp_stm)
 {
-    AS_reg *left = ASoperand2ASreg(cmp_stm->u.CMP->left);
-    AS_reg *right = ASoperand2ASreg(cmp_stm->u.CMP->right);
+    AS_reg *left = ASoperandMov(cmp_stm->u.CMP->left, as_list);
+    AS_reg *right = ASoperandMov(cmp_stm->u.CMP->right, as_list);
     condMap[cmp_stm->u.CMP->dst->u.TEMP->num] = convertRelopKind(cmp_stm->u.CMP->op);
     as_list.push_back(AS_Cmp(left, right));
 }

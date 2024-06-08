@@ -1,21 +1,17 @@
-struct Node {
-    l:int,
-    r:int
+let N:int;
+
+let newline:int;
+
+fn factor(n:int)->int
+{
+    ret n;
 }
 
-fn baz(c[10]:Node) {
-    c[2].l = getint();
-    //c[2].r = 4;
-    ret;
-}
-
-let d:Node;
-let e[10]:Node;
-
-fn main()->int{
-    _sysy_starttime(13);
-    baz(e);
-    putint(e[2].l);
-    _sysy_stoptime(19);
+fn main()->int
+{
+    let n:int = 1478;
+    let i:int = 739;
+    let res = (n/i)*i;
+    putint(res);
     ret 0;
 }
