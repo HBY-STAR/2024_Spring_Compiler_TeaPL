@@ -174,7 +174,7 @@ void new_frame(list<AS_stm *> &as_list, L_func &func)
             as_list.emplace_back(AS_Ldr(new AS_reg(AS_type::Xn, dest_reg->u.offset), new AS_reg(AS_type::ADR, src_addr)));
 
             // 记录参数在栈帧中的偏移
-            fpOffset[arg->num] = new AS_address(sp, i * INT_LENGTH);
+            //fpOffset[arg->num] = new AS_address(sp, i * INT_LENGTH);
         }
     }
 }

@@ -17,8 +17,8 @@ test_single() {
 	fi
 
 
-	aarch64-linux-gnu-gcc -c -g $func_testcase_dir/$test_name.S -o output/$test_name.o
-    aarch64-linux-gnu-gcc -g output/$test_name.o sylib/sylib.o -o output/$test_name
+	aarch64-linux-gnu-gcc -c $func_testcase_dir/$test_name.S -o output/$test_name.o
+    aarch64-linux-gnu-gcc output/$test_name.o sylib/sylib.o -o output/$test_name
 	if [ $? != 0 ]; then
 		echo "fail to compile"; exit -1
 	fi
