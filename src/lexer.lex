@@ -177,7 +177,7 @@ int calc(char *s, int len);
 }
 
 . {    
-    printf("Illegal input \"%c\"\n", yytext[0]);
+    ;
 }
 
 %%
